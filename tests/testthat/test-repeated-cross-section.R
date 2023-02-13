@@ -63,6 +63,7 @@ cs_fit = did::att_gt(
     idname = "id",
     print_details = FALSE,
     panel = FALSE,
+    biters = 10000,
     control_group = "notyettreated" )
 tictoc::toc()
 
@@ -114,49 +115,96 @@ test_that("Timing okay", {
 # Because of nature of birth data we don't actually test against RC here
 
 #### Influence Function Time ####
-# N_indiv_dt = create_indiv_per_period_dt(df, "G", "period", c(1:time.periods), unique(df$G))
+N_indiv_dt = create_indiv_per_period_dt(df, "G", "period", c(1:time.periods), unique(df$G))
 
-# summ_indiv_dt = create_indiv_first_treat_dt(
-#     dt = df, 
-#     y_var = "first_Y", 
-#     group_var = "G", 
-#     id_var = "id", 
-#     birth_var = "birth_period"
-# )
-# summ_group_dt = create_group_first_treat_dt(
-#     summ_indiv_dt, 
-#     "first_Y", 
-#     "G", 
-#     c(1:time.periods), 
-#     unique(summ_indiv_dt$G))
-
-# manual_infs = purrr::map2(
-#     manual_did$group, 
-#     manual_did$time,
-#     ~calculate_rc_influence_function(
-#         g_val = .x, 
-#         t_val = .y, 
-#         summ_indiv_dt,
-#         row_id_var = "rowid",
-#         prop_score_known = TRUE
-#     )
-# )
-# new_infs = map(manual_infs, "full_inf_func")
-# new_adjustment = map(manual_infs, "n_adjustment")
-# new_infs = map2(new_infs, new_adjustment, ~.x*.y)
+summ_indiv_dt = create_indiv_first_treat_dt(
+    dt = df, 
+    y_var = "first_Y", 
+    group_var = "G", 
+    id_var = "id", 
+    birth_var = "birth_period"
+)
+summ_group_dt = create_group_first_treat_dt(
+    summ_indiv_dt, 
+    "first_Y", 
+    "G", 
+    c(1:time.periods), 
+    unique(summ_indiv_dt$G))
+devtools::load_all()
+manual_infs = purrr::map2(
+    manual_did$group, 
+    manual_did$time,
+    ~calculate_rc_influence_function(
+        g_val = .x, 
+        t_val = .y, 
+        summ_indiv_dt,
+        row_id_var = "rowid",
+        prop_score_known = FALSE
+    )
+)
 
 
+new_infs = map(manual_infs, "full_inf_func")
+new_adjustment = map(manual_infs, "n_adjustment")
+new_infs = map2(new_infs, new_adjustment, ~.x*.y)
 
-# inf_M = matrix(unlist(new_infs), nrow = nrow(summ_indiv_dt))
+test_that("RC Inf Function Exists", {
+    map(
+        new_infs,
+        ~expect_equal(nrow(.x), nrow(summ_indiv_dt))
+    )
+})
 
-# wide_comp_ci_df = inner_join(
-#     manual_did %>% rename(
-#         manual_estimate = att_g_t, 
-#         manual_std.error = std.error),
-#     tidy_cs_fit %>%
-#         select(group, time, cs_estimate = estimate, cs_std.error = std.error), 
-#     by = c("group","time")
-# )
+inf_matrix = matrix(unlist(new_infs), nrow = nrow(summ_indiv_dt))
+
+manual_se = calculate_se(
+    inf_matrix,
+    biter = 10000
+)
+panel_cs_fit = did::att_gt(
+    data = rc_sim_df,
+    yname = "Y_binary",
+    tname = "period",
+    gname = "G",
+    est_method = "ipw",
+    idname = "id",
+    print_details = FALSE,
+    panel = TRUE,
+    biters = 10000,
+    control_group = "notyettreated" )
+
+cs_panel_se = broom::tidy(panel_cs_fit)$std.error
+cs_rc_se = tidy_cs_fit$std.error
+
+comp_se = tibble(
+    manual_se = manual_se,
+    cs_panel_se = cs_panel_se, 
+    cs_rc_se = cs_rc_se
+)
+
+comp_se = comp_se %>%
+    mutate(
+        btw = cs_panel_se < manual_se & manual_se < cs_rc_se
+    ) %>%
+    mutate(
+        bound_diff = if_else(
+            btw == TRUE, 
+            0, 
+            pmin(abs(manual_se - cs_panel_se), abs(manual_se - cs_rc_se))
+        )
+    )
+
+test_that("Birth Panel SEs close to True Panel/RC", {
+    # We don't stray more than 1% from bound
+    expect_lte(mean(comp_se$bound_diff/comp_se$manual_se), 1/100 )
+    # And 70% of the time we're within RC and Panel SEs
+    expect_gte(mean(comp_se$btw), 0.7)
+})
+
+
+
+
+
 
 
 

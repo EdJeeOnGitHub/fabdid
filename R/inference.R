@@ -48,7 +48,8 @@ calculate_rc_influence_function = function(g_val,
     # lookup_table = summ_group_dt
     # N_table = N_indiv_dt
     # lookup_indiv_table = summ_indiv_dt
-    # id_var = "id"
+    # row_id_var = "rowid"
+    # prop_score_known = TRUE
     if (t_val >= g_val) {
         lag_t_val = g_val - 1
     } else {
@@ -162,14 +163,17 @@ calculate_rc_influence_function = function(g_val,
   att.inf.func <- inf.treat - inf.cont
 
 
-    names(att.inf.func) = rc_ids
 
     full_inf_func = matrix(0, nrow(lookup_indiv_table))
-    full_inf_func[rc_ids] = att.inf.func
+    # We've calculated IF for each "section" separately
+    # now mash them together to get each indiv's contribution
+    indiv_level_inf_func = aggregate(att.inf.func, list(rc_ids), sum)
+    full_inf_func[indiv_level_inf_func[, 1]] = indiv_level_inf_func[, 2] 
+
+
     n_all = nrow(lookup_indiv_table)
     n_subset = nrow(subset_lookup_indiv_table)
-
-    return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/n_subset))
+    return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/length(att.inf.func)))
 }
 
 calculate_influence_function = function(g_val, 
@@ -253,7 +257,6 @@ calculate_influence_function = function(g_val,
 
     full_inf_func = matrix(0, nrow(lookup_indiv_table))
     full_inf_func[rowids] = att.inf.func
-
     return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/n_subset))
 }
 

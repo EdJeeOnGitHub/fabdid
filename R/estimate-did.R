@@ -21,10 +21,12 @@ estimate_did = function(data,
                         group_var, 
                         t_var, 
                         id_var,
+                        birth_var = NULL,
                         weight_df = NULL,
                         prop_score_known = FALSE, 
                         biter = 1000, 
-                        n_cores = 8){
+                        n_cores = 8,
+                        true_panel = TRUE){
     data = as.data.table(data)
     t_levels = sort(unique(data[, get(t_var)]))
     group_levels = data[,.(G = unique(get(group_var)))][order(G), G]
@@ -37,13 +39,15 @@ estimate_did = function(data,
         group_levels = group_levels,
         weight_df = weight_df
     )
-    
+
     summ_indiv_data = create_indiv_first_treat_dt(
         dt = data,
         y_var = y_var,
         group_var = group_var,
-        id_var = id_var
+        id_var = id_var,
+        birth_var = birth_var
     )
+    
     setkeyv(summ_indiv_data, c(group_var, y_var))
     summ_group_data = create_group_first_treat_dt(
         dt = summ_indiv_data,
@@ -68,16 +72,31 @@ estimate_did = function(data,
         .progress = TRUE
     )
 
-    inf_func_output = map2(
-        gs_and_ts_we_want$g, 
-        gs_and_ts_we_want$t,
-        ~calculate_influence_function(
-            g_val = .x, 
-            t_val = .y, 
-            summ_indiv_data,
-            prop_score_known = prop_score_known
+    if (true_panel == TRUE) {
+        inf_func_output = map2(
+            gs_and_ts_we_want$g, 
+            gs_and_ts_we_want$t,
+            ~calculate_influence_function(
+                g_val = .x, 
+                t_val = .y, 
+                summ_indiv_data,
+                prop_score_known = prop_score_known
+            )
         )
-    )
+    } else {
+        inf_func_output = map2(
+            gs_and_ts_we_want$g, 
+            gs_and_ts_we_want$t, 
+            ~calculate_rc_influence_function(
+                g_val = .x,
+                y_val = .y,
+                summ_indiv_data,
+                row_id_var = "rowid",
+                prop_score_known = prop_score_known
+            )
+        )
+    }
+
 
     gs_and_ts_we_want[, att_g_t := map_dbl(att_estimates, "att_g_t")]
     gs_and_ts_we_want[, event.time := time - group]
