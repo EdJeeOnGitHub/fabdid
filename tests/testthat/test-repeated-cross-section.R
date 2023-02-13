@@ -31,8 +31,8 @@ binary_sim_df = sim_df %>%
     ungroup() %>%
     group_by(id) %>%
     mutate(
-        first_Y =  min(period[Y_above == TRUE]), 
-        first_Y = if_else(!is.finite(first_Y), max(period), first_Y)
+        first_Y =  min(period[Y_above == TRUE])
+        # first_Y = if_else(!is.finite(first_Y), max(period), first_Y)
     ) %>%
     mutate(Y_binary = period >= first_Y)
 
@@ -40,14 +40,13 @@ binary_sim_df = sim_df %>%
 binary_sim_df = binary_sim_df %>%
     group_by(id) %>%
     mutate(
-        birth_period = round(runif(1, 0, first_Y))
+        birth_period = round(runif(1, 0, pmin(first_Y, max(period))))
     )  %>%
     ungroup()
 
 
 rc_sim_df = binary_sim_df %>%
     dplyr::filter(period >= birth_period)
-
 
 
 df = as.data.table(rc_sim_df)
@@ -200,6 +199,9 @@ comp_se = comp_se %>%
             0, 
             pmin(abs(manual_se - cs_panel_se), abs(manual_se - cs_rc_se))
         )
+    ) %>%
+    mutate(
+        pct_bound_diff = 100*bound_diff/manual_se
     )
 test_that("Birth Panel SEs close to True Panel/RC", {
     # We don't stray more than 10% from bound
@@ -207,12 +209,4 @@ test_that("Birth Panel SEs close to True Panel/RC", {
     # And 50% of the time we're within RC and Panel SEs
     expect_gte(mean(comp_se$btw), 0.5)
 })
-
-
-
-
-
-
-
-
 
