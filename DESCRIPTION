@@ -16,9 +16,11 @@ Imports:
     BMisc,
     broom,
     data.table,
+    devtools,
     did,
     dplyr,
     furrr,
+    Matrix,
     microbenchmark,
     purrr,
     tictoc
