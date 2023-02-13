@@ -1,6 +1,18 @@
 
+
+#' Estimate ATT(g,t) point estimates
+#' 
+#' 
+#' @description Given a 'lookup table' of when someone first was treated, calculate 
+#' the ATTs of Callaway and Sant'Anna
 #'
-#' @export
+#' @param g_val Which group to estimate ATT for.
+#' @param t_val Which time period to estimate ATT for.
+#' @param lookup_table Dataset with "counting" process which reflects when a unit is 
+#'      first switched  on.
+#' @param N_table Dataset with number of individuals per time and group..
+#' @param verbose Whether to return all subcomponents used in ATT calculation (for debugging primarily)
+#'
 calculate_att_g_t = function(g_val, 
                              t_val, 
                              lookup_table, 

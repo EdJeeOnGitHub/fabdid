@@ -276,9 +276,13 @@ calculate_se = function(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 
     return(se)
 }
 
+#' @description Multiplier Bootstrap
 #'
-#'
-#'
+#' @param inf.func Influence function matrix. NxK where N is N indiv and K is # of ATTs
+#' @param biters Bootstrap iterations. N.B. plural use of arg here but biter elsewhere. Nice. 
+#' @param pl Process in parallel
+#' @param cores Number of cores to use if parallel processing
+#' 
 #' TAKEN DIRECTLY FROM BCALLAWAY11/DID
 #'
 run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1) {

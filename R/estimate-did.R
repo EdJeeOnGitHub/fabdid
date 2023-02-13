@@ -10,6 +10,11 @@
 #' @param group_var Treatment group, in the style of CS package, must be first time period group is treated
 #' @param t_var Time period variable.
 #' @param id_var Unique ID for individuals.
+#' @param weight_df Dataframe of weights.
+#' @param prop_score_known Is the propensity score known or estimated
+#' @param biter How many bootstrap iterations to use to calculate SEs
+#' @param n_cores How many cores to use when bootstrapping
+#' 
 #' @export 
 estimate_did = function(data, 
                         y_var, 
