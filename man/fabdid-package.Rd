@@ -4,12 +4,12 @@
 \name{fabdid-package}
 \alias{fabdid}
 \alias{fabdid-package}
-\title{fabdid: What the Package Does (One Line, Title Case)}
+\title{fabdid: Fast Absorbing Binary DiD}
 \description{
-What the package does (one paragraph).
+Calculates ATTs and performs inference using Callaway and Sant'Anna (2021) for binary, "absorbing" outcomes quickly and (relatively) efficiently. Absorbing outcomes are those where an individual's outcome switches on in period t and is "on" for all subsequent periods.
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Ed Jee \email{edjee@uchicago.edu}
 
 }
 \keyword{internal}

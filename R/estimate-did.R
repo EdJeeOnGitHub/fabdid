@@ -97,12 +97,18 @@ estimate_did = function(data,
 
 
 
+#' Estimate Event Study
 #'
-#'
-#'
-#'
-#'
-#' @export
+#' Given a data.table of ATTs and an influence matrix, create event study estimates.
+#' 
+#' @param att_df Data.table of ATTs
+#' @param inf_matrix Influence function matrix, N individuals by K ATTs
+#' @param balance_e Balance event study for e time periods
+#' @param y_var Column name in att_df
+#' @param biter Bootstrap draws for inference
+#' @param n_cores Number of cores for parallal processing
+#' @param prop_score_known Propensity score known or to be estimated
+#' @param group_vector Nx1 vector of group IDs
 estimate_event_study = function(att_df, 
                                   inf_matrix,
                                   balance_e = NULL, 

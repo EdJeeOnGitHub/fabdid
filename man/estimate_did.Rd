@@ -26,6 +26,14 @@ estimate_did(
 \item{t_var}{Time period variable.}
 
 \item{id_var}{Unique ID for individuals.}
+
+\item{weight_df}{Dataframe of weights.}
+
+\item{prop_score_known}{Is the propensity score known or estimated}
+
+\item{biter}{How many bootstrap iterations to use to calculate SEs}
+
+\item{n_cores}{How many cores to use when bootstrapping}
 }
 \description{
 Estimates CS DiD when Y data is binary and 'absorbing' (once you're vaccinated
