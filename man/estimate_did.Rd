@@ -10,6 +10,7 @@ estimate_did(
   group_var,
   t_var,
   id_var,
+  birth_var = NULL,
   weight_df = NULL,
   prop_score_known = FALSE,
   biter = 1000,
@@ -26,6 +27,8 @@ estimate_did(
 \item{t_var}{Time period variable.}
 
 \item{id_var}{Unique ID for individuals.}
+
+\item{birth_var}{If a panel with children being born, what period are they born in.}
 
 \item{weight_df}{Dataframe of weights.}
 

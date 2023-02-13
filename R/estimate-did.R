@@ -14,6 +14,7 @@
 #' @param prop_score_known Is the propensity score known or estimated
 #' @param biter How many bootstrap iterations to use to calculate SEs
 #' @param n_cores How many cores to use when bootstrapping
+#' @param birth_var If a panel with children being born, what period are they born in.
 #' 
 #' @export 
 estimate_did = function(data, 
@@ -25,8 +26,7 @@ estimate_did = function(data,
                         weight_df = NULL,
                         prop_score_known = FALSE, 
                         biter = 1000, 
-                        n_cores = 8,
-                        true_panel = TRUE){
+                        n_cores = 8){
     data = as.data.table(data)
     t_levels = sort(unique(data[, get(t_var)]))
     group_levels = data[,.(G = unique(get(group_var)))][order(G), G]
@@ -72,7 +72,7 @@ estimate_did = function(data,
         .progress = TRUE
     )
 
-    if (true_panel == TRUE) {
+    if (is.null(birth_var)) {
         inf_func_output = map2(
             gs_and_ts_we_want$g, 
             gs_and_ts_we_want$t,
@@ -89,7 +89,7 @@ estimate_did = function(data,
             gs_and_ts_we_want$t, 
             ~calculate_rc_influence_function(
                 g_val = .x,
-                y_val = .y,
+                t_val = .y,
                 summ_indiv_data,
                 row_id_var = "rowid",
                 prop_score_known = prop_score_known
