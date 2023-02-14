@@ -105,3 +105,18 @@ create_indiv_per_period_dt = function(df, group_var, t_var, t_levels, group_leve
     )
     return(full_dt)
 }
+
+create_N_per_period_from_summ = function(summ_group, summ_indiv){
+    N_dt = lapply(
+        unique(summ_group$t),
+        function(x){summ_indiv[, .(N = sum(born_period <= x), t = x), G]}
+    ) %>%
+        rbindlist()
+
+    N_dt = N_dt[N_dt[, .(N = sum(N)), G][, .(pr = N/sum(N), G)], on = "G"]
+    N_dt[, w := 1 ]
+    setorder(N_dt, G, t)
+    setcolorder(N_dt, c("G", "t", "N", "w", "pr"))
+    setkeyv(N_dt, "G")
+    return(N_dt)
+}

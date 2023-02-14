@@ -121,6 +121,7 @@ test_that("Timing okay", {
 #### Influence Function Time ####
 N_indiv_dt = create_indiv_per_period_dt(df, "G", "period", c(1:time.periods), unique(df$G))
 
+
 summ_indiv_dt = create_indiv_first_treat_dt(
     dt = df, 
     y_var = "first_Y", 
@@ -134,6 +135,21 @@ summ_group_dt = create_group_first_treat_dt(
     "G", 
     c(1:time.periods), 
     unique(summ_indiv_dt$G))
+
+
+
+
+quick_N_dt = create_N_per_period_from_summ(summ_group_dt, summ_indiv_dt)
+
+
+test_that("Quick N per period works", {
+    expect_equal(
+        quick_N_dt,
+        N_indiv_dt[, .(G, t, N, w, pr)]
+    )
+})
+
+
 
 manual_infs = purrr::map2(
     manual_did$group, 
