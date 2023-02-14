@@ -5,7 +5,7 @@
 
 [![R-CMD-check](https://github.com/EdJeeOnGitHub/fabdid/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/EdJeeOnGitHub/fabdid/actions/workflows/R-CMD-check.yaml)
 
-`fabdid` performs Fast Absorbing Binary Difference-in-Differences
+fab(_ulous_)did - `fabdid` performs Fast Absorbing Binary Difference-in-Differences
 estimation. When outcome data is binary and *absorbing*, i.e. if
 $Y_{it} = 1 \implies Y_{it'} = 1, \forall t' > t$, `fabdid` estimates
 Callaway and Sant’Anna (2021) style $ATT(g,t)$s quickly.
