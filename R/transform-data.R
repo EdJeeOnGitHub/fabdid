@@ -106,9 +106,9 @@ create_indiv_per_period_dt = function(df, group_var, t_var, t_levels, group_leve
     return(full_dt)
 }
 
-create_N_per_period_from_summ = function(summ_group, summ_indiv){
+create_N_per_period_from_summ = function(time_levels, summ_indiv){
     N_dt = lapply(
-        unique(summ_group$t),
+        time_levels,
         function(x){summ_indiv[, .(N = sum(born_period <= x), t = x), G]}
     ) %>%
         rbindlist()
