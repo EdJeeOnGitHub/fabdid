@@ -106,6 +106,12 @@ create_indiv_per_period_dt = function(df, group_var, t_var, t_levels, group_leve
     return(full_dt)
 }
 
+#' Create N individuals Per Period Using Summary Data
+#'
+#' @param time_levels time periods to calculate over
+#' @param summ_indiv individual level summary data to use
+#'
+#' @export 
 create_N_per_period_from_summ = function(time_levels, summ_indiv){
     N_dt = lapply(
         time_levels,
