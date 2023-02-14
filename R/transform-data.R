@@ -29,7 +29,18 @@ create_indiv_first_treat_dt = function(dt,
     return(summ_dt)
 }
 
-
+#' @title Create 'Group' counting data
+#'
+#' Group individual counting data by treatment group and aggregate by summing.
+#'
+#' @param dt Indiv "counting" data.
+#' @param y_var What is the y variable called.
+#' @param group_var What is the group variable called.
+#' @param t_levels Unique levels of t to calculate over
+#' @param group_levels Unique levels of g to calculate over
+#' @param weight_df Weighting df
+#'
+#' @export
 create_group_first_treat_dt = function(dt, y_var, group_var, t_levels, group_levels, weight_df = NULL) {
     
     if (is.null(weight_df)) {
