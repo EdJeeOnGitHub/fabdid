@@ -19,17 +19,15 @@ treatment effect parameter}
 should have the same dimension as att(whichones)}
 
 \item{wif}{extra influence function term coming from estimating the weights;
-should be n x k matrix where k is dimension of whichones}
+should be n x k matrix where k is dimension of whichones
+
+TAKEN DIRECTLY FROM BCALLAWAY11/DID}
 }
 \value{
 nx1 influence function
 }
 \description{
-Get an influence function for particular aggregate parameters
-
 This is a generic internal function for combining influence
 functions across ATT(g,t)'s to return an influence function for
 various aggregated treatment effect parameters.
-
-TAKEN DIRECTLY FROM BCALLAWAY11/DID
 }

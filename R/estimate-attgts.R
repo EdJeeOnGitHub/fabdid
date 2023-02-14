@@ -13,6 +13,7 @@
 #' @param N_table Dataset with number of individuals per time and group..
 #' @param verbose Whether to return all subcomponents used in ATT calculation (for debugging primarily)
 #'
+#' @export 
 calculate_att_g_t = function(g_val, 
                              t_val, 
                              lookup_table, 

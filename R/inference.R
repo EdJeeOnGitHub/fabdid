@@ -35,6 +35,18 @@ wif <- function(keepers, pg, weights.ind, G, group) {
   if1 - if2
 }
 
+#' Calculate 'rc' style influence function
+#'
+#'
+#' @param g_val Group in ATT(g, t)
+#' @param t_val t in ATT(g, t)
+#' @param lookup_indiv_table "counting" binary data
+#' @param row_id_var Variable tracking individual ID, must be contiguous hence 'rowid'
+#' @param verbose Whether to return intermediate outputs
+#' @param check Internal debugging function
+#' @param prop_score_known Is the propensity score known
+#' 
+#' @export
 calculate_rc_influence_function = function(g_val, 
                                            t_val, 
                                            lookup_indiv_table,
@@ -176,6 +188,11 @@ calculate_rc_influence_function = function(g_val,
     return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/length(att.inf.func)))
 }
 
+#' Calculate 'rc' style influence function
+#'
+#' @inherit calculate_rc_influence_function
+#' 
+#' @export
 calculate_influence_function = function(g_val, 
                                         t_val, 
                                         lookup_indiv_table,
@@ -260,6 +277,18 @@ calculate_influence_function = function(g_val,
     return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/n_subset))
 }
 
+#' Calculate Standard Errors Using Multiplier Bootstrap
+#' 
+#' @description Calculate standard errors using influence function
+#' 
+#' @param inf_matrix NxK matrix with N indiv observations and K ATTs
+#' @param biter Number of bootstrap iterations
+#' @param pl Run in parallel
+#' @param n_cores Number of cores to use in parallel
+#' @param alp Test size, defaults to 0.05.
+#'
+#'
+#' @export 
 calculate_se = function(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05){
     n = nrow(inf_matrix)
     bres = sqrt(n) * run_multiplier_bootstrap(
@@ -279,6 +308,8 @@ calculate_se = function(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 
     return(se)
 }
 
+#' Run Multiplier Bootstrap
+#'
 #' @description Multiplier Bootstrap
 #'
 #' @param inf.func Influence function matrix. NxK where N is N indiv and K is # of ATTs
@@ -287,7 +318,7 @@ calculate_se = function(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 
 #' @param cores Number of cores to use if parallel processing
 #' 
 #' TAKEN DIRECTLY FROM BCALLAWAY11/DID
-#'
+#' @export
 run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1) {
   ngroups = ceiling(biters/cores)
   chunks = rep(ngroups, cores)
@@ -314,11 +345,10 @@ run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1) {
 
 #' @title Get an influence function for particular aggregate parameters
 #'
-#' @title This is a generic internal function for combining influence
+#' @description This is a generic internal function for combining influence
 #'  functions across ATT(g,t)'s to return an influence function for
 #'  various aggregated treatment effect parameters.
 #' 
-#'  TAKEN DIRECTLY FROM BCALLAWAY11/DID
 #'
 #' @param att vector of group-time average treatment effects
 #' @param inffunc1 influence function for all group-time average treatment effects
@@ -330,8 +360,10 @@ run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1) {
 #' @param wif extra influence function term coming from estimating the weights;
 #'  should be n x k matrix where k is dimension of whichones
 #'
+#'  TAKEN DIRECTLY FROM BCALLAWAY11/DID
+#' 
 #' @return nx1 influence function
-#'
+#' @export
 get_agg_inf_func <- function(att, inffunc1, whichones, weights.agg, wif=NULL) {
   # enforce weights are in matrix form
   weights.agg <- as.matrix(weights.agg)

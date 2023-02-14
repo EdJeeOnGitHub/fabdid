@@ -128,6 +128,8 @@ estimate_did = function(data,
 #' @param n_cores Number of cores for parallal processing
 #' @param prop_score_known Propensity score known or to be estimated
 #' @param group_vector Nx1 vector of group IDs
+
+#' @export 
 estimate_event_study = function(att_df, 
                                   inf_matrix,
                                   balance_e = NULL, 
