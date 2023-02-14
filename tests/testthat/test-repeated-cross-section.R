@@ -5,9 +5,6 @@ library(purrr)
 library(furrr)
 
 set.seed(289202)
-if (interactive()) {
-    devtools::load_all()
-}
 
 ncl <- 1
 time.periods <- 5

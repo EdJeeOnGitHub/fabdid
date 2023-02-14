@@ -6,10 +6,6 @@ library(data.table)
 library(furrr)
 set.seed(10202)
 
-if (interactive()) {
-    devtools::load_all()
-}
-
 ncl <- 1
 time.periods <- 5
 biters <- 200
