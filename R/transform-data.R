@@ -3,14 +3,16 @@ create_indiv_first_treat_dt = function(dt,
                                        y_var, 
                                        group_var, 
                                        id_var,
-                                       birth_var = NULL) {
+                                       birth_var = NULL, 
+                                       cluster_id = id_var) {
     if (!is.null(birth_var)) {
         summ_dt = dt[
             , 
             .(
                 first_Y = unique(get(y_var)),
                 G = unique(get(group_var)), 
-                born_period = unique(get(birth_var))
+                born_period = unique(get(birth_var)), 
+                cluster_id = unique(get(cluster_id))
             ), 
             by = id_var
             ]
@@ -19,7 +21,8 @@ create_indiv_first_treat_dt = function(dt,
             , 
             .(
                 first_Y = unique(get(y_var)),
-                G = unique(get(group_var))
+                G = unique(get(group_var)),
+                cluster_id = unique(get(cluster_id))
             ), 
             by = id_var
             ]

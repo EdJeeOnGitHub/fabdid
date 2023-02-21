@@ -4,10 +4,19 @@
 \alias{calculate_se}
 \title{Calculate Standard Errors Using Multiplier Bootstrap}
 \usage{
-calculate_se(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05)
+calculate_se(
+  inf_matrix,
+  cluster_id = NULL,
+  biter = 2000,
+  pl = TRUE,
+  n_cores = 8,
+  alp = 0.05
+)
 }
 \arguments{
 \item{inf_matrix}{NxK matrix with N indiv observations and K ATTs}
+
+\item{cluster_id}{Vector nx1 of cluster IDs.}
 
 \item{biter}{Number of bootstrap iterations}
 

@@ -12,7 +12,8 @@ estimate_event_study(
   biter = 1000,
   n_cores = 8,
   prop_score_known = FALSE,
-  group_vector = NULL
+  group_vector = NULL,
+  cluster_id = NULL
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ estimate_event_study(
 \item{prop_score_known}{Propensity score known or to be estimated}
 
 \item{group_vector}{Nx1 vector of group IDs}
+
+\item{cluster_id}{Nx1 vector of cluster IDs}
 }
 \description{
 Given a data.table of ATTs and an influence matrix, create event study estimates.

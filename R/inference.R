@@ -286,25 +286,35 @@ calculate_influence_function = function(g_val,
 #' @param pl Run in parallel
 #' @param n_cores Number of cores to use in parallel
 #' @param alp Test size, defaults to 0.05.
+#' @param cluster_id Vector nx1 of cluster IDs. 
 #'
 #'
 #' @export 
-calculate_se = function(inf_matrix, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05){
-    n = nrow(inf_matrix)
-    bres = sqrt(n) * run_multiplier_bootstrap(
-        inf_matrix, 
-        biter, 
-        pl = pl, 
-        n_cores)
-    V = cov(bres)
-    bSigma <- apply(bres, 2,
-                    function(b) (quantile(b, .75, type=1, na.rm = T) -
-                                    quantile(b, .25, type=1, na.rm = T))/(qnorm(.75) - qnorm(.25)))
-    # critical value for uniform confidence band
-    bT <- base::suppressWarnings(apply(bres, 1, function(b) max( abs(b/bSigma), na.rm = T)))
-    bT <- bT[is.finite(bT)]
-    crit.val <- quantile(bT, 1-alp, type=1, na.rm = T)
-    se = as.numeric(bSigma) / sqrt(nrow(inf_matrix))
+calculate_se = function(inf_matrix, cluster_id = NULL, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05){
+    if (is.null(cluster_id)) {
+        n = nrow(inf_matrix)
+        bres = sqrt(n) * run_multiplier_bootstrap(
+            inf_matrix, 
+            biter, 
+            pl = pl, 
+            n_cores)
+        n_clusters = n
+    } else {
+        n_clusters = length(unique(cluster_id))
+        cluster_n = aggregate(cluster_id, by = list(cluster_id), length)[, 2]
+        cluster_mean_if = rowsum(inf_matrix, cluster_id, reorder = TRUE) / cluster_n
+        bres = sqrt(n_clusters) * run_multiplier_bootstrap(cluster_mean_if, biter, pl = pl, n_cores)
+    }
+
+        V = cov(bres)
+        bSigma <- apply(bres, 2,
+                        function(b) (quantile(b, .75, type=1, na.rm = T) -
+                                        quantile(b, .25, type=1, na.rm = T))/(qnorm(.75) - qnorm(.25)))
+        # critical value for uniform confidence band
+        bT <- base::suppressWarnings(apply(bres, 1, function(b) max( abs(b/bSigma), na.rm = T)))
+        bT <- bT[is.finite(bT)]
+        crit.val <- quantile(bT, 1-alp, type=1, na.rm = T)
+        se = as.numeric(bSigma) / sqrt(n_clusters)
     return(se)
 }
 

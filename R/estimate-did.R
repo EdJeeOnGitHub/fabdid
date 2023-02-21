@@ -10,6 +10,7 @@
 #' @param group_var Treatment group, in the style of CS package, must be first time period group is treated
 #' @param t_var Time period variable.
 #' @param id_var Unique ID for individuals.
+#' @param cluster_var Variable to cluster SEs on. 
 #' @param weight_df Dataframe of weights.
 #' @param prop_score_known Is the propensity score known or estimated
 #' @param biter How many bootstrap iterations to use to calculate SEs
@@ -23,6 +24,7 @@ estimate_did = function(data,
                         t_var, 
                         id_var,
                         birth_var = NULL,
+                        cluster_var = NULL,
                         weight_df = NULL,
                         prop_score_known = FALSE, 
                         biter = 1000, 
@@ -40,11 +42,15 @@ estimate_did = function(data,
         weight_df = weight_df
     )
 
+    if (is.null(cluster_var)) {
+        cluster_var = id_var
+    }
     summ_indiv_data = create_indiv_first_treat_dt(
         dt = data,
         y_var = y_var,
         group_var = group_var,
         id_var = id_var,
+        cluster_id = cluster_var,
         birth_var = birth_var
     )
     
@@ -128,7 +134,7 @@ estimate_did = function(data,
 #' @param n_cores Number of cores for parallal processing
 #' @param prop_score_known Propensity score known or to be estimated
 #' @param group_vector Nx1 vector of group IDs
-
+#' @param cluster_id Nx1 vector of cluster IDs
 #' @export 
 estimate_event_study = function(att_df, 
                                   inf_matrix,
@@ -137,7 +143,8 @@ estimate_event_study = function(att_df,
                                   biter = 1000,
                                   n_cores = 8,
                                   prop_score_known = FALSE,
-                                  group_vector = NULL
+                                  group_vector = NULL, 
+                                  cluster_id = NULL
                                   ) {
     # att_df = manual_did
     # biter = 100
@@ -178,7 +185,7 @@ estimate_event_study = function(att_df,
             )
         )
     } else {
-        weight_if = map(event_time_att_idx, NULL)
+        weight_if = NULL
     }
 
 
@@ -194,7 +201,7 @@ estimate_event_study = function(att_df,
     )
     et_se = map_dbl(
         et_if,
-        ~calculate_se(.x, biter = biter, n_cores = n_cores)
+        ~calculate_se(.x, biter = biter, n_cores = n_cores, cluster_id = cluster_id)
     )
     es_df[, std.error := et_se]
     setorder(es_df, event.time)

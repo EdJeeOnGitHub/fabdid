@@ -18,6 +18,8 @@ sim_params = did::reset.sim(
 sim_df = did::build_sim_dataset(sp_list = sim_params, panel = TRUE) %>%
     dplyr::as_tibble()
 
+sim_df = sim_df %>%
+    mutate(cluster = cluster %/% 3)
 
 binary_sim_df = sim_df %>%
     group_by(G) %>%
@@ -235,3 +237,55 @@ test_that("Event Study Matches", {
     )
 
 })
+
+
+
+#### Clustered SEs ####
+
+cluster_summ_indiv_dt = create_indiv_first_treat_dt(df, "first_Y", "G", "id", cluster_id = "cluster")
+
+manual_cluster_se = calculate_se(
+    inf_matrix,
+    biter = 10000, 
+    cluster_id = cluster_summ_indiv_dt[, cluster_id]
+    )
+
+
+tictoc::tic()
+rc_cs_cluster_fit = did::att_gt(
+    data = binary_sim_df,
+    yname = "Y_binary",
+    tname = "period",
+    gname = "G",
+    panel = FALSE,
+    clustervars = "cluster",
+    est_method = "ipw",
+    idname = "id",
+    print_details = FALSE,
+    control_group = "notyettreated" )
+tictoc::toc()
+
+
+
+
+test_that("Clustered SEs work", {
+    comp_se_df = bind_cols(
+        manual = manual_cluster_se, 
+        cs = rc_cs_cluster_fit %>%
+            tidy() %>%
+            pull(std.error)
+    ) %>%
+        mutate(diff = 100*abs(manual - cs)/cs) 
+
+    # Not more than 10% off for any indiv error
+    map(
+        comp_se_df$diff, 
+        expect_lte, 
+        10
+    )    
+
+    # on average not off by more than 5%
+    expect_lte(mean(comp_se_df$diff), 5)
+
+})
+
