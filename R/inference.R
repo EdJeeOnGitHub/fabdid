@@ -287,9 +287,7 @@ calculate_influence_function = function(g_val,
 #' @param n_cores Number of cores to use in parallel
 #' @param alp Test size, defaults to 0.05.
 #' @param cluster_id Vector nx1 of cluster IDs. 
-#'
-#'
-#' @export 
+#' @export
 calculate_se = function(inf_matrix, cluster_id = NULL, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05){
     if (is.null(cluster_id)) {
         n = nrow(inf_matrix)
