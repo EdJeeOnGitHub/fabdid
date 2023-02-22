@@ -223,3 +223,35 @@ test_that("Birth Panel SEs close to True Panel/RC", {
     expect_gte(mean(comp_se$btw), 0.5)
 })
 
+
+unbalanced_panel_fit = did::att_gt(
+    data = rc_sim_df,
+    yname = "Y_binary",
+    tname = "period",
+    gname = "G",
+    est_method = "ipw",
+    idname = "id",
+    print_details = FALSE,
+    panel = TRUE,
+    allow_unbalanced_panel = TRUE,
+    biters = 1000,
+    control_group = "notyettreated" )
+
+
+comp_unba_se = bind_cols(
+    cs = broom::tidy(unbalanced_panel_fit)$std.error, 
+    manual = manual_se
+) %>%
+    mutate(diff = cs - manual)
+
+
+
+test_that("Birth Panel SEs close to unbalanced", {
+    # Not the closest/most rigorous of checks
+    mean_diff = comp_unba_se %>% 
+        summarise(
+            mean_diff = mean(diff)
+        ) %>%
+        pull()
+    expect_lte(mean_diff, 0.01)
+})
