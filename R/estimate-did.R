@@ -151,18 +151,19 @@ estimate_event_study = function(att_df,
     # n_cores = 4
     # prop_score_known = FALSE
     # group_vector = summ_indiv_dt[, G]
+    # balance_e = NULL
+    # y_var = "att_g_t"
+
     if (!is.null(balance_e)) {
-        att_df = att_df %>%
-            group_by(group) %>%
-            mutate(max_et = mean(event.time)) %>%
-            filter(max_et >= balance_e) %>%
-            filter(event.time <= balance_e) %>%
-            ungroup() %>%
-            as.data.table()
+        att_df[, max_et := max(event.time), group]
+        att_df = att_df[max_et >= balance_e & event.time <= balance_e]
     }
     att_df[, wt := pr/sum(pr), .(event.time, treated)]
     agg_pr = att_df[, unique(pr), .(event.time)][, V1]
-    es_df = att_df[, .(estimate = sum(get(y_var)*wt)), .(event.time, treated)]
+
+    es_df = calculate_event_study(att_df, y_var = y_var)
+
+
 
     event_times = unique(es_df$event.time)
     event_time_att_idx = map(
