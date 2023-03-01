@@ -94,6 +94,11 @@ calculate_rc_influence_function = function(g_val,
         subset_lookup_indiv_table[born_period < g_val, as.logical(treated)]
         )
     n = length(D)
+    # if empty group return NA
+    if (n == 0) {
+      return(lst(g = g_val, t = t_val, NA, n_adjustment = NA))
+    }
+
     i.weights = NULL
     int.cov = matrix(1, n)
 
