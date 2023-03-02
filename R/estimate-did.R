@@ -158,7 +158,7 @@ estimate_event_study = function(att_df,
         att_df[, max_et := max(event.time), group]
         att_df = att_df[max_et >= balance_e & event.time <= balance_e]
     }
-    att_df[, wt := pr/sum(pr), .(event.time, treated)]
+    att_df[!is.na(get(y_var)), wt := pr/sum(pr), .(event.time, treated)]
     agg_pr = att_df[, unique(pr), .(event.time)][, V1]
 
     es_df = calculate_event_study(att_df, y_var = y_var)
