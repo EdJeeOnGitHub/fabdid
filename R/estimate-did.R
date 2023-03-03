@@ -227,7 +227,6 @@ estimate_event_study = function(att_df,
 #' @param y_var Column name in att_df
 #' @param biter Bootstrap draws for inference
 #' @param n_cores Number of cores for parallal processing
-#' @param group_vector Nx1 vector of group IDs
 #' @param cluster_id Nx1 vector of cluster IDs
 #' @export 
 estimate_group_average = function(att_df, 
@@ -236,8 +235,7 @@ estimate_group_average = function(att_df,
                                   y_var = att_g_t, 
                                   biter = 1000,
                                   n_cores = 8,
-                                  cluster_id = NULL,
-                                  group_vector
+                                  cluster_id = NULL
                                   ) {
     # att_df = manual_did
     # biter = 100
@@ -258,7 +256,6 @@ estimate_group_average = function(att_df,
     #   list(inf.func=inf.func.g, se=se.g)
     # })
  
-
     if (!is.null(balance_e)) {
         att_df[, max_et := max(event.time), group]
         att_df = att_df[max_et >= balance_e & event.time <= balance_e]
@@ -268,7 +265,8 @@ estimate_group_average = function(att_df,
     groups = unique(att_df$group)
 
     # pr group
-    pg = sapply(groups, function(g) mean(group_vector == g))
+    pg_df = att_df[, .(pr = unique(pr)), group]
+    pg = att_df[match(groups, att_df[, group]), pr]
     # pr group by group
     pgg = pg
     # now matches number og atts
