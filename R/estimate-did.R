@@ -212,6 +212,8 @@ estimate_event_study = function(att_df,
     )
     es_df[, std.error := et_se]
     setorder(es_df, event.time)
+    es_df[, conf.low := estimate - 1.96*std.error]
+    es_df[, conf.high := estimate + 1.96*std.error]
     return(es_df)
 }
 
@@ -311,5 +313,7 @@ estimate_group_average = function(att_df,
         cluster_id = cluster_id
     )
     group_dt[, std.error := c(overall_se, group_se)]
+    group_dt[, conf.low := estimate - 1.96*std.error]
+    group_dt[, conf.high := estimate + 1.96*std.error]
     return(group_dt)
 }
