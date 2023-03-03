@@ -1,6 +1,6 @@
 Package: fabdid
 Title: Fast Absorbing Binary DiD 
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: 
     person("Ed", "Jee", , "edjee@uchicago.edu", role = c("aut", "cre"))
 Description: Calculates ATTs and performs inference using Callaway and Sant'Anna (2021) for 

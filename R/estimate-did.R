@@ -219,13 +219,14 @@ estimate_event_study = function(att_df,
 #'
 #' Given a data.table of ATTs and an influence matrix, create group level estimates.
 #' 
+#' Assumes propensity score is known.
+#' 
 #' @param att_df Data.table of ATTs
 #' @param inf_matrix Influence function matrix, N individuals by K ATTs
 #' @param balance_e Balance event study for e time periods
 #' @param y_var Column name in att_df
 #' @param biter Bootstrap draws for inference
 #' @param n_cores Number of cores for parallal processing
-#' @param prop_score_known Propensity score known or to be estimated
 #' @param group_vector Nx1 vector of group IDs
 #' @param cluster_id Nx1 vector of cluster IDs
 #' @export 
@@ -273,12 +274,9 @@ estimate_group_average = function(att_df,
     # now matches number og atts
     pg = pg[match(att_df$group, groups)]
 
-
-
-
     whichones = map(
         groups,
-        ~which(att_df[, group == .x])
+        ~which(att_df[, group == .x & event.time >= 0])
     )
 
     inf_func_group = map(
@@ -296,6 +294,24 @@ estimate_group_average = function(att_df,
         inf_func_group,
         ~calculate_se(.x, biter = biter, n_cores = n_cores, cluster_id = cluster_id)
     )
-    group_dt[, std.error := c(NA, group_se)]
+
+    overall_if_matrix = do.call(cbind, inf_func_group)
+    
+    # get overall influence function
+    overall_if = get_agg_inf_func(att=att_df[group == 'Average', estimate],
+                                           inffunc1=overall_if_matrix,
+                                           whichones=(1:ncol(overall_if_matrix)),
+                                           weights.agg=pgg/sum(pgg),
+                                           wif=NULL)
+
+
+    overall_se = calculate_se(
+        overall_if, 
+
+        biter = biter, 
+        n_cores = n_cores, 
+        cluster_id = cluster_id
+    )
+    group_dt[, std.error := c(overall_se, group_se)]
     return(group_dt)
 }

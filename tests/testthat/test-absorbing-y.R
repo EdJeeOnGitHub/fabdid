@@ -238,7 +238,46 @@ test_that("Event Study Matches", {
 
 })
 
+#### Group Averages ####
 
+manual_group = manual_did %>%
+    estimate_group_average(
+        inf_matrix = inf_matrix, 
+        y_var = "att_g_t",
+        biter = 10000, 
+        group_vector = summ_indiv_dt[, G])
+
+tidy_group_fit = cs_fit %>%
+    aggte(type = "group", biters = 10000) %>%
+    tidy() %>%
+    as_tibble()
+
+test_that("Group Aggregation Matches", {
+    group_comp_estimate = bind_cols(
+        cs_group = tidy_group_fit$estimate,
+        manual_group = manual_group$estimate
+    )
+    group_comp_se = bind_cols(
+        cs_group = tidy_group_fit$std.error,
+        manual_group = manual_group$std.error
+    )
+
+    map2(
+        group_comp_estimate$cs_group,
+        group_comp_estimate$manual_group,
+        ~expect_equal(.x, .y)
+    )
+
+
+    group_comp_se = group_comp_se %>%
+        mutate(diff = abs(cs_group - manual_group)) %>%
+        mutate(pct_diff = 100*diff/cs_group)
+    map(
+        group_comp_se$pct_diff,
+        ~expect_lte(.x, 10)
+    )
+
+})
 
 #### Clustered SEs ####
 
@@ -275,9 +314,9 @@ test_that("Clustered SEs work", {
             tidy() %>%
             pull(std.error)
     ) %>%
-        mutate(diff = 100*abs(manual - cs)/cs) 
+        mutate(diff = 100*(cs - manual)/cs) 
 
-    # Not more than 10% off for any indiv error
+    # Not more than 10% smaller off for any indiv error
     map(
         comp_se_df$diff, 
         expect_lte, 

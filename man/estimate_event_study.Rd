@@ -8,7 +8,7 @@ estimate_event_study(
   att_df,
   inf_matrix,
   balance_e = NULL,
-  y_var = att_g_t,
+  y_var = "att_g_t",
   biter = 1000,
   n_cores = 8,
   prop_score_known = FALSE,
