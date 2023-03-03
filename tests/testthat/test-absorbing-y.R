@@ -239,13 +239,11 @@ test_that("Event Study Matches", {
 })
 
 #### Group Averages ####
-
 manual_group = manual_did %>%
     estimate_group_average(
         inf_matrix = inf_matrix, 
         y_var = "att_g_t",
         biter = 10000)
-
 tidy_group_fit = cs_fit %>%
     aggte(type = "group", biters = 10000) %>%
     tidy() %>%

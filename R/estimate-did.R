@@ -230,6 +230,8 @@ estimate_event_study = function(att_df,
 #' @param biter Bootstrap draws for inference
 #' @param n_cores Number of cores for parallal processing
 #' @param cluster_id Nx1 vector of cluster IDs
+#' @param pr_split Conditional probability associated with each ATT(g,t) if conditioning 
+#'      on covariates used.
 #' @export 
 estimate_group_average = function(att_df, 
                                   inf_matrix,
@@ -237,7 +239,8 @@ estimate_group_average = function(att_df,
                                   y_var = att_g_t, 
                                   biter = 1000,
                                   n_cores = 8,
-                                  cluster_id = NULL
+                                  cluster_id = NULL,
+                                  pr_split = NULL
                                   ) {
     # att_df = manual_did
     # biter = 100
@@ -262,17 +265,27 @@ estimate_group_average = function(att_df,
         att_df[, max_et := max(event.time), group]
         att_df = att_df[max_et >= balance_e & event.time <= balance_e]
     }
-
-    group_dt = calculate_group_average(att_df, y_var = y_var)
+    # make pr unique here toojbjb
+    group_dt = calculate_group_average(att_df, y_var = y_var, pr_split = pr_split)
     groups = unique(att_df$group)
 
+    if (is.null(pr_split)) {
+        pg = att_df[, pr]
+        pgg_df = att_df[, .(pr = unique(pr)), .(group, time)]
+    } else {
+        pg = att_df[, pr*get(pr_split)]
+        pgg_df = att_df[, .(pr = sum(pr*get(pr_split))), .(group, time)]
+    }
     # pr group
-    pg_df = att_df[, .(pr = unique(pr)), group]
-    pg = att_df[match(groups, att_df[, group]), pr]
+    # pg_df = att_df[, .(pr = unique(pr)), group]
+    # pg = att_df[match(groups, att_df[, group]), pr]
     # pr group by group
-    pgg = pg
+    # pgg = pg
     # now matches number og atts
-    pg = pg[match(att_df$group, groups)]
+
+    # If multiple pr(G = g) per group (i.e. because we've split up the group by 
+    # conditioning on a covariate factor, make unique by summing over g&t)
+    pgg = pgg_df[match(groups, pgg_df[, group]), pr]
 
     whichones = map(
         groups,
@@ -292,7 +305,11 @@ estimate_group_average = function(att_df,
 
     group_se = map_dbl(
         inf_func_group,
-        ~calculate_se(.x, biter = biter, n_cores = n_cores, cluster_id = cluster_id)
+        ~calculate_se(
+            .x, 
+            biter = biter, 
+            n_cores = n_cores, 
+            cluster_id = cluster_id)
     )
 
     overall_if_matrix = do.call(cbind, inf_func_group)
