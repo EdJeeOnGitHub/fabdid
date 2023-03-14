@@ -67,6 +67,7 @@ calculate_rc_influence_function = function(g_val,
     } else {
         lag_t_val = t_val - 1
     }
+    browser()
 
 
 

@@ -13,17 +13,22 @@
 #' @param N_table Dataset with number of individuals per time and group..
 #' @param verbose Whether to return all subcomponents used in ATT calculation (for debugging primarily)
 #'
+#' @inherit estimate-did
 #' @export 
 calculate_att_g_t = function(g_val, 
                              t_val, 
                              lookup_table, 
                              N_table, 
+                             hetero_var,
                              verbose = FALSE) {
     if (t_val >= g_val) {
         lag_t_val = g_val - 1
     } else {
         lag_t_val = t_val - 1
     }
+
+
+    type_vals = lookup_table[t == t_val & G == g_val, get(hetero_var)]
 
     n_g_t_treated = lookup_table[t == t_val & G == g_val, n*w]
     N_g_t = N_table[t == t_val & G == g_val, N*w]
@@ -56,5 +61,11 @@ calculate_att_g_t = function(g_val,
             att_g_t
             ))
     }
-    return(lst(g = g_val, t = t_val, att_g_t))
+    dt = data.table(
+        g = g_val, 
+        t = t_val, 
+        att_g_t = att_g_t, 
+        hetero_var = type_vals
+    )
+    return(dt)
 }

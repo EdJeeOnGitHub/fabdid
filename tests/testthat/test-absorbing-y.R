@@ -34,7 +34,6 @@ binary_sim_df = sim_df %>%
 
 df = as.data.table(binary_sim_df)
 
-
 tictoc::tic()
 rc_cs_fit = did::att_gt(
     data = binary_sim_df,
@@ -75,7 +74,6 @@ manual_did = estimate_did(
     t_var = "period",
     id_var = "id"
 )$att_df
-
 
 comp_df = inner_join(
     manual_did %>% rename(manual_estimate = att_g_t),

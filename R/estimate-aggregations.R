@@ -5,16 +5,15 @@ calculate_event_study = function(att_pr_df, y_var){
 }
 
 
-calculate_group_average = function(att_pr_df, y_var, pr_split = NULL) {
-    if (!is.null(pr_split)) {
+calculate_group_average = function(att_pr_df, y_var, aggregate_fits = FALSE) {
+    if (aggregate_fits == TRUE) {
         group_estim = att_pr_df[
-            event.time >= 0
+            event.time >= 0 & !is.na(get(y_var))
             ][, 
-            .(estimate = sum(get(y_var)*get(pr_split)), pr = sum(pr*get(pr_split))), 
+            .(estimate = sum(get(y_var)*pr_split), pr = sum(pr*pr_split)), 
             group]
-        
     } else {
-        group_estim = att_pr_df[event.time >= 0][, .(estimate = mean(get(y_var)), pr = unique(pr)), group]
+        group_estim = att_pr_df[event.time >= 0 & !is.na(get(y_var))][, .(estimate = mean(get(y_var)), pr = unique(pr)), group]
     }
     group_estim[, group := as.character(group)]
 
