@@ -21,6 +21,9 @@ calculate_att_g_t = function(g_val,
                              N_table, 
                              hetero_var,
                              verbose = FALSE) {
+    if (is.null(hetero_var)) {
+        hetero_var = "const"
+    }
     if (t_val >= g_val) {
         lag_t_val = g_val - 1
     } else {

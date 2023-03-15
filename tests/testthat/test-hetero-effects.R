@@ -74,7 +74,6 @@ tictoc::toc()
 
 tidy_cs_fit = broom::tidy(cs_fit) %>% dplyr::as_tibble()
 
-
 no_het_fit = estimate_did(
     df,
     y_var = "first_Y",
@@ -82,7 +81,6 @@ no_het_fit = estimate_did(
     t_var = "period",
     id_var = "id"
 )$att_df
-
 
 
 het_manual_did = estimate_did(
@@ -101,9 +99,16 @@ comp_df = inner_join(
     tidy_cs_fit %>%
         select(group, time, cs_estimate = estimate), 
     by = c("group","time")
-)
+) %>%
+    left_join(
+        no_het_fit %>% rename(no_het_manual_estimate = att_g_t),
+        by = c("group", "time")
+    )
 
-
+no_het_lookup_max_error = comp_df %>%
+    mutate(error = abs(no_het_manual_estimate - cs_estimate)) %>%
+    summarise(max_error = max(error)) %>%
+    pull()
 lookup_max_error = comp_df %>%
     mutate(error = abs(manual_estimate - cs_estimate)) %>%
     summarise(max_error = max(error)) %>%
@@ -111,6 +116,7 @@ lookup_max_error = comp_df %>%
 
 test_that("Manual Estimates OK", {
     expect_lte(lookup_max_error, 1e-8)
+    expect_lte(no_het_lookup_max_error, 1e-8)
 }
 )
 

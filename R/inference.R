@@ -67,8 +67,6 @@ calculate_rc_influence_function = function(g_val,
     } else {
         lag_t_val = t_val - 1
     }
-    browser()
-
 
 
     people_we_want = lookup_indiv_table[, (G == g_val | (t_val < G | G == 0)) & born_period <= t_val]
