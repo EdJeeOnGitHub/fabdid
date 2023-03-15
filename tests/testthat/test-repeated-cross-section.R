@@ -6,6 +6,7 @@ library(furrr)
 
 set.seed(289202)
 
+custom_min = function(x) {if (length(x) > 0) min(x) else Inf}
 ncl <- 1
 time.periods <- 5
 biters <- 200
@@ -28,7 +29,7 @@ binary_sim_df = sim_df %>%
     ungroup() %>%
     group_by(id) %>%
     mutate(
-        first_Y =  min(period[Y_above == TRUE])
+        first_Y =  custom_min(period[Y_above == TRUE])
         # first_Y = if_else(!is.finite(first_Y), max(period), first_Y)
     ) %>%
     mutate(Y_binary = period >= first_Y)
@@ -159,7 +160,7 @@ manual_infs = purrr::map2(
     ~calculate_rc_influence_function(
         g_val = .x, 
         t_val = .y, 
-        summ_indiv_dt,
+        lookup_indiv_table = summ_indiv_dt,
         row_id_var = "rowid",
         prop_score_known = FALSE
     )
@@ -183,7 +184,7 @@ manual_se = calculate_se(
     inf_matrix,
     biter = 1000
 )
-panel_cs_fit = did::att_gt(
+panel_cs_fit = suppressWarnings(did::att_gt(
     data = rc_sim_df,
     yname = "Y_binary",
     tname = "period",
@@ -193,7 +194,7 @@ panel_cs_fit = did::att_gt(
     print_details = FALSE,
     panel = TRUE,
     biters = 1000,
-    control_group = "notyettreated" )
+    control_group = "notyettreated" ))
 
 cs_panel_se = broom::tidy(panel_cs_fit)$std.error
 cs_rc_se = tidy_cs_fit$std.error

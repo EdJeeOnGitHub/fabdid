@@ -49,6 +49,8 @@ wif <- function(keepers, pg, weights.ind, G, group) {
 #' @export
 calculate_rc_influence_function = function(g_val, 
                                            t_val, 
+                                           hetero_val = NULL,
+                                           hetero_var = NULL,
                                            lookup_indiv_table,
                                            row_id_var,
                                            verbose = FALSE,
@@ -68,8 +70,14 @@ calculate_rc_influence_function = function(g_val,
         lag_t_val = t_val - 1
     }
 
+    if (is.null(hetero_var) & is.null(hetero_val)) {
+      hetero_var = "const"
+      lookup_indiv_table[, const := 1]
+      hetero_val = 1
+    }
 
-    people_we_want = lookup_indiv_table[, (G == g_val | (t_val < G | G == 0)) & born_period <= t_val]
+
+    people_we_want = lookup_indiv_table[, ((G == g_val & get(hetero_var) == hetero_val) | (t_val < G | G == 0)) & born_period <= t_val]
     subset_lookup_indiv_table = lookup_indiv_table[people_we_want]
     subset_lookup_indiv_table[, treated := factor(G == g_val, levels = c(TRUE, FALSE))]
     subset_lookup_indiv_table[, Y_post := first_Y <= t_val]
@@ -80,7 +88,9 @@ calculate_rc_influence_function = function(g_val,
     Y_post = subset_lookup_indiv_table[, Y_post]
     Y_pre = subset_lookup_indiv_table[born_period < g_val, Y_pre]
 
-    rc_ids = c(subset_lookup_indiv_table[, get(row_id_var)], subset_lookup_indiv_table[born_period < g_val, get(row_id_var)])
+    rc_ids = c(
+      subset_lookup_indiv_table[, get(row_id_var)], 
+      subset_lookup_indiv_table[born_period < g_val, get(row_id_var)])
     y = c(
         Y_post,
         Y_pre
@@ -199,6 +209,8 @@ calculate_rc_influence_function = function(g_val,
 #' @export
 calculate_influence_function = function(g_val, 
                                         t_val, 
+                                        hetero_val = NULL,
+                                        hetero_var = NULL,
                                         lookup_indiv_table,
                                         verbose = FALSE,
                                         check = FALSE,
@@ -214,12 +226,16 @@ calculate_influence_function = function(g_val,
     } else {
         lag_t_val = t_val - 1
     }
+    
+    if (is.null(hetero_var) & is.null(hetero_val)) {
+      hetero_var = "const"
+      lookup_indiv_table[, const := 1]
+      hetero_val = 1
+    }
 
 
-
-
-    people_we_want = lookup_indiv_table[, G == g_val | (t_val < G | G == 0)]
-    subset_lookup_indiv_table = lookup_indiv_table[G == g_val | (t_val < G | G == 0)]
+    people_we_want = lookup_indiv_table[, (G == g_val & get(hetero_var) == hetero_val) | (t_val < G | G == 0)]
+    subset_lookup_indiv_table = lookup_indiv_table[(G == g_val & get(hetero_var) == hetero_val) | (t_val < G | G == 0)]
     subset_lookup_indiv_table[, treated := factor(G == g_val, levels = c(TRUE, FALSE))]
     pr_treat = subset_lookup_indiv_table[, mean(treated == TRUE)]
     subset_lookup_indiv_table[, Y_post := first_Y <= t_val]

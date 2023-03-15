@@ -8,6 +8,7 @@ set.seed(10202)
 ncl <- 1
 time.periods <- 4
 biters <- 200
+custom_min = function(x) {if (length(x) > 0) min(x) else Inf}
 
 # Creates simulation params
 sim_params = did::reset.sim(time.periods = time.periods, n = 1000)
@@ -22,7 +23,7 @@ binary_sim_df = sim_df %>%
     ungroup() %>%
     group_by(id) %>%
     mutate(
-        first_Y =  min(period[Y_above == TRUE])
+        first_Y =  custom_min(period[Y_above == TRUE])
     ) %>%
     mutate(Y_binary = period >= first_Y)
 

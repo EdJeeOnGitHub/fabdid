@@ -85,34 +85,51 @@ estimate_did = function(data,
         .progress = TRUE
     ) %>%
         as.data.table()
+
+    if (is.null(hetero_var)) {
+        hetero_var = "const"
+        data[, const := 1]
+    }
+    gs_ts_heteros_we_want = CJ(
+        group = group_levels[group_levels != 0], 
+        time = t_levels[t_levels != min(t_levels)], 
+        hetero = data[, unique(get(hetero_var))]
+        )
     if (is.null(birth_var)) {
-        inf_func_output = map2(
-            gs_and_ts_we_want$g, 
-            gs_and_ts_we_want$t,
+        inf_func_output = pmap(
+            list(
+                gs_ts_heteros_we_want$group,
+                gs_ts_heteros_we_want$time,
+                gs_ts_heteros_we_want$hetero
+            ),
             ~calculate_influence_function(
-                g_val = .x, 
-                t_val = .y, 
-                summ_indiv_data,
+                g_val = ..1, 
+                t_val = ..2, 
+                hetero_val = ..3, 
+                hetero_var = hetero_var,
+                lookup_indiv_table = summ_indiv_data,
                 prop_score_known = prop_score_known
             )
         )
     } else {
-        inf_func_output = map2(
-            gs_and_ts_we_want$g, 
-            gs_and_ts_we_want$t, 
+        inf_func_output = pmap(
+            list(
+                gs_ts_heteros_we_want$group,
+                gs_ts_heteros_we_want$time,
+                gs_ts_heteros_we_want$hetero
+            ),
             ~calculate_rc_influence_function(
-                g_val = .x,
-                t_val = .y,
-                summ_indiv_data,
+                g_val = ..1,
+                t_val = ..2,
+                hetero_val = ..3,
+                hetero_var = hetero_var,
+                lookup_indiv_table = summ_indiv_data,
                 row_id_var = "rowid",
                 prop_score_known = prop_score_known
             )
         )
     }
 
-    if (is.null(hetero_var)) {
-        hetero_var = "const"
-    }
     setnames(att_estimates, c("group", "time", "att_g_t", hetero_var))
     att_estimates[, event.time := time - group]
     
@@ -153,16 +170,70 @@ estimate_did = function(data,
 #' @param prop_score_known Propensity score known or to be estimated
 #' @param group_vector Nx1 vector of group IDs
 #' @param cluster_id Nx1 vector of cluster IDs
+#' @param hetero_var Factor variable for heterogeneous effects 
 #' @export 
 estimate_event_study = function(att_df, 
-                                  inf_matrix,
-                                  balance_e = NULL, 
-                                  y_var = "att_g_t", 
-                                  biter = 1000,
-                                  n_cores = 8,
-                                  prop_score_known = FALSE,
-                                  group_vector = NULL, 
-                                  cluster_id = NULL
+                                inf_matrix,
+                                balance_e = NULL, 
+                                y_var = "att_g_t", 
+                                biter = 1000,
+                                n_cores = 8,
+                                prop_score_known = FALSE,
+                                group_vector = NULL, 
+                                cluster_id = NULL, 
+                                hetero_var = NULL
+                                  ) {
+    if (is.null(hetero_var)) {
+        indices_we_want = list(1:nrow(att_df))
+        hetero_vals = 1
+        hetero_var = "const"
+    } else {
+        hetero_vals = att_df[, unique(get(hetero_var))]
+        indices_we_want = map(
+            hetero_vals, 
+            ~which(att_df[, get(hetero_var) == .x])
+            )
+    }
+    es_df = imap_dfr(
+        indices_we_want,
+        ~.estimate_event_study(
+            att_df = att_df[.x, ],
+            inf_matrix = inf_matrix[, .x],
+            balance_e = balance_e, 
+            y_var = y_var,
+            biter = biter,
+            n_cores = n_cores,
+            prop_score_known = prop_score_known,
+            group_vector = group_vector, 
+            cluster_id = cluster_id
+        ) %>%
+        as.data.table() %>%
+        mutate(tmp_var = hetero_vals[.y])
+    )
+    setnames(es_df, c("event.time", 
+                      "estimate", 
+                      "std.error", 
+                      "conf.low", 
+                      "conf.high", 
+                      hetero_var))    
+    setorderv(es_df, c("event.time", hetero_var))
+    if (hetero_var == "const") {
+        es_df[, const := NULL]
+    }
+    return(es_df)
+}
+                                
+
+
+.estimate_event_study = function(att_df, 
+                                inf_matrix,
+                                balance_e = NULL, 
+                                y_var = "att_g_t", 
+                                biter = 1000,
+                                n_cores = 8,
+                                prop_score_known = FALSE,
+                                group_vector = NULL, 
+                                cluster_id = NULL
                                   ) {
     # att_df = manual_did
     # biter = 100
@@ -171,7 +242,6 @@ estimate_event_study = function(att_df,
     # group_vector = summ_indiv_dt[, G]
     # balance_e = NULL
     # y_var = "att_g_t"
-
     if (!is.null(balance_e)) {
         att_df[, max_et := max(event.time), group]
         att_df = att_df[max_et >= balance_e & event.time <= balance_e]
@@ -183,10 +253,11 @@ estimate_event_study = function(att_df,
 
 
     att_df[, wt := pr/sum(pr), .(event.time, treated)]
-    agg_pr = att_df[, unique(pr), .(event.time)][, V1]
-
+    # agg_pr = att_df[, unique(pr), .(event.time)][, V1]
+    agg_pr = att_df[, sum(pr), .(group, event.time)][order(event.time, group), V1]
     es_df = calculate_event_study(att_df, y_var = y_var)
 
+    setorder(es_df, event.time)
 
 
     event_times = unique(es_df$event.time)

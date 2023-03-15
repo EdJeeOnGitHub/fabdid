@@ -10,6 +10,7 @@ ncl <- 1
 time.periods <- 5
 biters <- 200
 
+custom_min = function(x) {if (length(x) > 0) min(x) else Inf}
 # Creates simulation params
 sim_params = did::reset.sim(
     time.periods = time.periods, 
@@ -27,7 +28,7 @@ binary_sim_df = sim_df %>%
     ungroup() %>%
     group_by(id) %>%
     mutate(
-        first_Y =  min(period[Y_above == TRUE]), 
+        first_Y =  custom_min(period[Y_above == TRUE]), 
         first_Y = if_else(!is.finite(first_Y), max(period), first_Y)
     ) %>%
     mutate(Y_binary = period >= first_Y)
@@ -118,14 +119,13 @@ summ_group_dt = create_group_first_treat_dt(
     c(1:time.periods), 
     unique(summ_indiv_dt$G))
 
-
 manual_infs = purrr::map2(
     manual_did$group, 
     manual_did$time,
     ~calculate_influence_function(
         g_val = .x, 
         t_val = .y, 
-        summ_indiv_dt,
+        lookup_indiv_table = summ_indiv_dt,
         prop_score_known = FALSE
     )
 )
