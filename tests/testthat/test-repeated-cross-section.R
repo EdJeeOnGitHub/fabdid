@@ -139,13 +139,15 @@ summ_group_dt = create_group_first_treat_dt(
 
 
 
-quick_N_dt = create_N_per_period_from_summ(time_levels = unique(summ_group_dt$t), summ_indiv_dt)
+quick_N_dt = create_N_per_period_from_summ(
+    time_levels = unique(summ_group_dt$t), 
+    summ_indiv_dt)
 
 
 test_that("Quick N per period works", {
     expect_equal(
         quick_N_dt,
-        N_indiv_dt[, .(G, t, N, w, pr)]
+        N_indiv_dt[, .(G, t, N, w, pr, const)]
     )
 })
 

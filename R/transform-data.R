@@ -163,6 +163,7 @@ create_indiv_per_period_dt = function(df,
         by = c("G", hetero_var)
     )
     setorderv(full_dt, c("G", "t", hetero_var))
+    setkeyv(full_dt, c("G", "t", hetero_var))
     return(full_dt)
 }
 
@@ -178,11 +179,10 @@ create_N_per_period_from_summ = function(time_levels, summ_indiv, hetero_var = N
     }
     N_dt = lapply(
         time_levels,
-        function(x){summ_indiv[, .(N = sum(born_period <= x), t = x), .(G, hetero_var)]}
+        function(x){summ_indiv[, .(N = sum(born_period <= x), t = x), c("G", hetero_var)]}
     ) %>%
         rbindlist()
-    N_dt[, hetero_var = get(hetero_var)]
-    summ_N_dt = N_dt[, .(N = sum(N)), .(G, hetero_var)][, .(pr = N/sum(N), G, hetero_var = get(hetero_var))]
+    summ_N_dt = N_dt[, .(N = sum(N)), c("G", hetero_var)][, .(pr = N/sum(N), G, hetero_var = get(hetero_var))]
     setnames(summ_N_dt, c("pr", "G", hetero_var))
     N_dt = merge(
         N_dt, 
@@ -192,8 +192,8 @@ create_N_per_period_from_summ = function(time_levels, summ_indiv, hetero_var = N
         all.x = TRUE
     )
     N_dt[, w := 1 ]
-    setorder(N_dt, G, t, hetero_var)
+    setorderv(N_dt, c("G", "t", hetero_var))
     setcolorder(N_dt, c("G", "t",  "N", "w", "pr"))
-    setkeyv(N_dt, "G", hetero_var)
+    setkeyv(N_dt, c("G", "t", hetero_var))
     return(N_dt)
 }
