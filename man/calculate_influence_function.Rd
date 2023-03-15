@@ -7,6 +7,8 @@
 calculate_influence_function(
   g_val,
   t_val,
+  hetero_val = NULL,
+  hetero_var = NULL,
   lookup_indiv_table,
   verbose = FALSE,
   check = FALSE,
@@ -17,6 +19,10 @@ calculate_influence_function(
 \item{g_val}{Group in ATT(g, t)}
 
 \item{t_val}{t in ATT(g, t)}
+
+\item{hetero_val}{Level of factor variable to estimate IF for.}
+
+\item{hetero_var}{Factor variable for heterogeneous treatment effects.}
 
 \item{lookup_indiv_table}{"counting" binary data}
 

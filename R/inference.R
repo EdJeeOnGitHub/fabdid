@@ -45,6 +45,8 @@ wif <- function(keepers, pg, weights.ind, G, group) {
 #' @param verbose Whether to return intermediate outputs
 #' @param check Internal debugging function
 #' @param prop_score_known Is the propensity score known
+#' @param hetero_var Factor variable for heterogeneous treatment effects. 
+#' @param hetero_val Level of factor variable to estimate IF for. 
 #' 
 #' @export
 calculate_rc_influence_function = function(g_val, 

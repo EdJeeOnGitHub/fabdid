@@ -171,6 +171,7 @@ create_indiv_per_period_dt = function(df,
 #'
 #' @param time_levels time periods to calculate over
 #' @param summ_indiv individual level summary data to use
+#' @param hetero_var Factor variable for heterogeneous treatment effects. 
 #'
 #' @export 
 create_N_per_period_from_summ = function(time_levels, summ_indiv, hetero_var = NULL){

@@ -4,7 +4,14 @@
 \alias{calculate_att_g_t}
 \title{Estimate ATT(g,t) point estimates}
 \usage{
-calculate_att_g_t(g_val, t_val, lookup_table, N_table, verbose = FALSE)
+calculate_att_g_t(
+  g_val,
+  t_val,
+  lookup_table,
+  N_table,
+  hetero_var,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{g_val}{Which group to estimate ATT for.}
@@ -15,6 +22,8 @@ calculate_att_g_t(g_val, t_val, lookup_table, N_table, verbose = FALSE)
 first switched  on.}
 
 \item{N_table}{Dataset with number of individuals per time and group..}
+
+\item{hetero_var}{Factor variable for heterogeneous treatment effects.}
 
 \item{verbose}{Whether to return all subcomponents used in ATT calculation (for debugging primarily)}
 }

@@ -15,7 +15,8 @@ estimate_did(
   weight_df = NULL,
   prop_score_known = FALSE,
   biter = 1000,
-  n_cores = 8
+  n_cores = 8,
+  hetero_var = NULL
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ estimate_did(
 \item{biter}{How many bootstrap iterations to use to calculate SEs}
 
 \item{n_cores}{How many cores to use when bootstrapping}
+
+\item{hetero_var}{Factor variable used to estimate heterogeneous treatment effects.}
 }
 \description{
 Estimates CS DiD when Y data is binary and 'absorbing' (once you're vaccinated

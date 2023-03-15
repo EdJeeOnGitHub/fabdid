@@ -12,6 +12,7 @@ create_group_first_treat_dt(
   group_var,
   t_levels,
   group_levels,
+  hetero_var = NULL,
   weight_df = NULL
 )
 }
@@ -25,6 +26,8 @@ create_group_first_treat_dt(
 \item{t_levels}{Unique levels of t to calculate over}
 
 \item{group_levels}{Unique levels of g to calculate over}
+
+\item{hetero_var}{Factor variable to use to calculate heterogeneous treatment effects}
 
 \item{weight_df}{Weighting df}
 }

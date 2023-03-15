@@ -4,12 +4,14 @@
 \alias{create_N_per_period_from_summ}
 \title{Create N individuals Per Period Using Summary Data}
 \usage{
-create_N_per_period_from_summ(time_levels, summ_indiv)
+create_N_per_period_from_summ(time_levels, summ_indiv, hetero_var = NULL)
 }
 \arguments{
 \item{time_levels}{time periods to calculate over}
 
 \item{summ_indiv}{individual level summary data to use}
+
+\item{hetero_var}{Factor variable for heterogeneous treatment effects.}
 }
 \description{
 Create N individuals Per Period Using Summary Data
