@@ -187,6 +187,9 @@ estimate_event_study = function(att_df,
         indices_we_want = list(1:nrow(att_df))
         hetero_vals = 1
         hetero_var = "const"
+        if (prop_score_known == FALSE) {
+            stop("Heterogeneous effects and unknown propensity score not yet implemented.")
+        }
     } else {
         hetero_vals = att_df[, unique(get(hetero_var))]
         indices_we_want = map(
