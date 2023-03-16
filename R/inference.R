@@ -139,11 +139,18 @@ calculate_rc_influence_function = function(g_val,
     w.cont.post <- i.weights * (1 - D) * post
   }
 
+  mu_w.treat.pre = mean(w.treat.pre) + 1e-8
+  mu_w.treat.post = mean(w.treat.post) + 1e-8
+
+  mu_w.cont.pre = mean(w.cont.pre) + 1e-8
+  mu_w.cont.post = mean(w.cont.post) + 1e-8
+
+
   # Elements of the influence function (summands)
-  eta.treat.pre <- w.treat.pre * y / mean(w.treat.pre)
-  eta.treat.post <- w.treat.post * y / mean(w.treat.post)
-  eta.cont.pre <- w.cont.pre * y / mean(w.cont.pre)
-  eta.cont.post <- w.cont.post * y / mean(w.cont.post)
+  eta.treat.pre <- w.treat.pre * y / mu_w.treat.pre
+  eta.treat.post <- w.treat.post * y / mu_w.treat.post
+  eta.cont.pre <- w.cont.pre * y / mu_w.cont.pre
+  eta.cont.post <- w.cont.post * y / mu_w.cont.post
 
   # Estimator of each component
   att.treat.pre <- mean(eta.treat.pre)
@@ -174,13 +181,13 @@ calculate_rc_influence_function = function(g_val,
   #-----------------------------------------------------------------------------
   # Now, the influence function of the "treat" component
   # Leading term of the influence function: no estimation effect
-  inf.treat.pre <- eta.treat.pre - w.treat.pre * att.treat.pre/mean(w.treat.pre)
-  inf.treat.post <- eta.treat.post - w.treat.post * att.treat.post/mean(w.treat.post)
+  inf.treat.pre <- eta.treat.pre - w.treat.pre * att.treat.pre/ mu_w.treat.pre
+  inf.treat.post <- eta.treat.post - w.treat.post * att.treat.post/mu_w.treat.post
   inf.treat <- inf.treat.post - inf.treat.pre
   # Now, get the influence function of control component
   # Leading term of the influence function: no estimation effect
-  inf.cont.pre <- eta.cont.pre - w.cont.pre * att.cont.pre/mean(w.cont.pre)
-  inf.cont.post <- eta.cont.post - w.cont.post * att.cont.post/mean(w.cont.post)
+  inf.cont.pre <- eta.cont.pre - w.cont.pre * att.cont.pre/mu_w.cont.pre
+  inf.cont.post <- eta.cont.post - w.cont.post * att.cont.post/mu_w.cont.post
   inf.cont <- inf.cont.post - inf.cont.pre
 
 
