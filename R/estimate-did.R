@@ -17,6 +17,7 @@
 #' @param n_cores How many cores to use when bootstrapping
 #' @param birth_var If a panel with children being born, what period are they born in.
 #' @param hetero_var Factor variable used to estimate heterogeneous treatment effects. 
+#' @param set_div_0_to_0  If there are no individuals present, set probability to 0 instead of NaN 
 #' 
 #' @export 
 estimate_did = function(data, 
@@ -30,7 +31,8 @@ estimate_did = function(data,
                         prop_score_known = FALSE, 
                         biter = 1000, 
                         n_cores = 8, 
-                        hetero_var = NULL
+                        hetero_var = NULL, 
+                        set_div_0_to_0 = FALSE
                         ){
     data = as.data.table(data)
     t_levels = sort(unique(data[, get(t_var)]))
@@ -80,7 +82,8 @@ estimate_did = function(data,
             t_val = .y,
             lookup_table = summ_group_data,
             N_table = N_indiv_data, 
-            hetero_var = hetero_var
+            hetero_var = hetero_var,
+            set_div_0_to_0 = set_div_0_to_0
         ), 
         .progress = TRUE
     ) %>%

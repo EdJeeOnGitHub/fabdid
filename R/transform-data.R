@@ -183,6 +183,16 @@ create_N_per_period_from_summ = function(time_levels, summ_indiv, hetero_var = N
         function(x){summ_indiv[, .(N = sum(born_period <= x), t = x), c("G", hetero_var)]}
     ) %>%
         rbindlist()
+    full_N_dt = CJ(t = time_levels, G = summ_indiv[, unique(G)], het_tmp = summ_indiv[, unique(get(hetero_var))])
+    setnames(full_N_dt, c("t", "G", hetero_var))
+    N_dt = merge(
+        full_N_dt,
+        N_dt, 
+        all.x = TRUE, 
+        by = c("t", "G", hetero_var)
+    )
+    N_dt[is.na(N), N := 0]
+
     summ_N_dt = N_dt[, .(N = sum(N)), c("G", hetero_var)][, .(pr = N/sum(N), G, hetero_var = get(hetero_var))]
     setnames(summ_N_dt, c("pr", "G", hetero_var))
     N_dt = merge(
