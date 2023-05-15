@@ -210,6 +210,97 @@ calculate_rc_influence_function = function(g_val,
     n_subset = nrow(subset_lookup_indiv_table)
     return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/length(att.inf.func)))
 }
+test_calculate_influence_function = function(g_val, 
+                                        t_val, 
+                                        hetero_val = NULL,
+                                        hetero_var = NULL,
+                                        lookup_indiv_table,
+                                        verbose = FALSE,
+                                        check = FALSE,
+                                        prop_score_known = FALSE) {
+
+    browser()
+    # g_val = 3
+    # t_val = 3
+    # lookup_table = summ_group_dt
+    # N_table = N_indiv_dt
+    # lookup_indiv_table = summ_indiv_dt
+    if (t_val >= g_val) {
+        lag_t_val = g_val - 1
+    } else {
+        lag_t_val = t_val - 1
+    }
+    
+    if (is.null(hetero_var) & is.null(hetero_val)) {
+      hetero_var = "const"
+      lookup_indiv_table[, const := 1]
+      hetero_val = 1
+    }
+
+
+    people_we_want = lookup_indiv_table[, (G == g_val & get(hetero_var) == hetero_val) | (t_val < G | G == 0)]
+    subset_lookup_indiv_table = lookup_indiv_table[(G == g_val & get(hetero_var) == hetero_val) | (t_val < G | G == 0)]
+    subset_lookup_indiv_table[, treated := factor(G == g_val, levels = c(TRUE, FALSE))]
+    pr_treat = subset_lookup_indiv_table[, mean(treated == TRUE)]
+    subset_lookup_indiv_table[, Y_post := first_Y <= t_val]
+    subset_lookup_indiv_table[, Y_pre := first_Y <= lag_t_val]
+    deltaY = subset_lookup_indiv_table[, Y_post - Y_pre]
+
+
+
+
+    n_all =  nrow(lookup_indiv_table)
+    n_subset = nrow(subset_lookup_indiv_table)
+
+    D = subset_lookup_indiv_table[, as.logical(treated)]
+
+
+
+    n = nrow(subset_lookup_indiv_table)
+    if (prop_score_known == FALSE){
+        PS = stats::glm(D ~ 1, family = "binomial")
+        ps.fit = as.vector(PS$fitted.value)
+        w.cont = ps.fit * (1 - D) / (1 - ps.fit)    
+    } else {
+        w.cont = (1 - D)
+    }
+
+    w.treat = D
+
+
+
+    att.treat = w.treat*deltaY
+    att.cont = w.cont*deltaY
+
+
+    eta.treat = mean(att.treat) / mean(w.treat)
+    eta.cont = mean(att.cont) / mean(w.cont)
+
+    inf.treat = (att.treat - w.treat * eta.treat) / mean(w.treat)
+    inf.cont.1 = (att.cont - w.cont*eta.cont)
+
+    if (prop_score_known == FALSE) {
+        score.ps = (D - ps.fit)
+        Hessian.ps = stats::vcov(PS) * n
+        asy.lin.rep.ps = score.ps %*% Hessian.ps
+        M2 = mean(w.cont * (deltaY - eta.cont))
+        inf.cont.2 = asy.lin.rep.ps %*% M2
+    } else {
+        inf.cont.2 = matrix(0, n_subset)
+    }
+
+    inf.control = (inf.cont.1 + inf.cont.2) / mean(w.cont)
+    att.inf.func = inf.treat - inf.control
+    att.inf.func = att.inf.func[, 1]
+
+    rowids = which(people_we_want == TRUE, arr.ind = FALSE, useNames = TRUE)
+    names(att.inf.func) = rowids
+
+    full_inf_func = matrix(0, nrow(lookup_indiv_table))
+    full_inf_func[rowids] = att.inf.func
+    return(lst(g = g_val, t = t_val, full_inf_func, n_adjustment = n_all/n_subset))
+}
+
 
 #' Calculate 'rc' style influence function
 #'

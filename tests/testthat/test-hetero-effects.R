@@ -16,7 +16,7 @@ custom_min = function(x) {if (length(x) > 0) min(x) else Inf}
 # Creates simulation params
 sim_params = did::reset.sim(
     time.periods = time.periods, 
-    n = 2000)
+    n = 50)
 
 sim_df = did::build_sim_dataset(sp_list = sim_params, panel = TRUE) %>%
     dplyr::as_tibble()
@@ -36,14 +36,13 @@ binary_sim_df = sim_df %>%
     mutate(Y_binary = period >= first_Y) %>%
     group_by(id) %>%
     mutate(
-        type = sample(1:2, size = 1)
+        type = sample(1:2, size = 1, prob = c(0.7, 0.3))
     )
+
 
 
 df = as.data.table(binary_sim_df)
 
-
-df[, .N, .(G)]
 
 tictoc::tic()
 rc_cs_fit = did::att_gt(
@@ -81,7 +80,8 @@ no_het_fit = estimate_did(
     y_var = "first_Y",
     group_var = "G",
     t_var = "period",
-    id_var = "id"
+    id_var = "id",
+    prop_score_known = TRUE
 )
 
 no_het_manual_did = no_het_fit$att_df
@@ -161,30 +161,283 @@ manual_infs = purrr::pmap(
         hetero_val = ..3,
         hetero_var = "type",
         lookup_indiv_table = summ_indiv_dt,
-        prop_score_known = FALSE
+        prop_score_known = TRUE
+    )
+)
+
+clean_infs = function(inf_input) {
+    new_infs = map(inf_input, "full_inf_func")
+    new_adjustment = map(inf_input, "n_adjustment")
+    new_infs = map2(new_infs, new_adjustment, ~.x*.y)
+    inf_matrix = matrix(unlist(new_infs), nrow = nrow(new_infs[[1]]))
+    return(inf_matrix)
+}
+
+
+manual_het_inf_matrix = clean_infs(manual_infs)
+att_inf_output = cs_fit$inffunc
+att_infs = map(1:ncol(att_inf_output), ~as.matrix(att_inf_output[, .x]))
+
+test_that("Influence function has same dim as att_df", {
+    expect_equal(ncol(manual_het_inf_matrix), nrow(het_manual_did))
+}
+)
+#### Testing we can recover IF
+
+manual_infs = purrr::pmap(
+    list(
+        het_manual_did$group, 
+        het_manual_did$time,
+        het_manual_did$type
+    ),
+    ~calculate_influence_function(
+        g_val = ..1, 
+        t_val = ..2, 
+        hetero_val = ..3,
+        hetero_var = "type",
+        lookup_indiv_table = summ_indiv_dt,
+        prop_score_known = TRUE
     )
 )
 
 
-new_infs = map(manual_infs, "full_inf_func")
-new_adjustment = map(manual_infs, "n_adjustment")
-new_infs = map2(new_infs, new_adjustment, ~.x*.y)
-att_inf_output = cs_fit$inffunc
-att_infs = map(1:ncol(att_inf_output), ~as.matrix(att_inf_output[, .x]))
-
-
-inf_matrix = matrix(unlist(new_infs), nrow = nrow(new_infs[[1]]))
-test_that("Influence function has same dim as att_df", {
-    expect_equal(ncol(inf_matrix), nrow(het_manual_did))
-}
+homo_2_2_if = calculate_influence_function(
+    g_val = 2,
+    t_val = 2,
+    hetero_val = NULL,
+    hetero_var = NULL,
+    lookup_indiv_table = summ_indiv_dt,
+    prop_score_known = TRUE
 )
+
+
+hetero_2_2_1_if = calculate_influence_function(
+    g_val = 2,
+    t_val = 2,
+    hetero_val = 1,
+    hetero_var = "type",
+    lookup_indiv_table = summ_indiv_dt,
+    prop_score_known = TRUE
+)
+
+hetero_2_2_2_if = calculate_influence_function(
+    g_val = 2,
+    t_val = 2,
+    hetero_val = 2,
+    hetero_var = "type",
+    lookup_indiv_table = summ_indiv_dt,
+    prop_score_known = TRUE
+)
+
+hetero_2_2_1_if
+hetero_2_2_2_if
+
+
+a = 0.2
+b = 1 - a
+z = rnorm(1000)
+x = z + rnorm(1000)
+y = a*x + b*z
+if_z = z - mean(z)
+if_x = x - mean(x)
+
+if_y = y - mean(y)
+if_comp = a*if_x + b*if_z
+
+if_y - if_comp
+
+
+het_weight_dt = het_manual_did[, .(type, weight = pr/sum(pr)), .(group, time)] %>%
+    tidyr::spread(type, weight, sep = "_")
+
+create_homo_if = function(g_val,
+                          t_val,
+                          lookup_indiv_table, 
+                          het_att_df) {
+    if_1 = calculate_influence_function(
+        g_val = g_val,
+        t_val = t_val,
+        hetero_val = 1,
+        hetero_var = "type",
+        lookup_indiv_table = lookup_indiv_table,
+        prop_score_known = TRUE
+    )
+    if_2 = calculate_influence_function(
+        g_val = g_val,
+        t_val = t_val,
+        hetero_val = 2,
+        hetero_var = "type",
+        lookup_indiv_table = lookup_indiv_table,
+        prop_score_known = TRUE
+    )
+    het_weight_dt = het_att_df[, .(type, weight = pr/sum(pr)), .(group, time)] %>%
+        tidyr::spread(type, weight, sep = "_")
+    w_1 = het_weight_dt[group == g_val & time == t_val, type_1]
+    w_2 = het_weight_dt[group == g_val & time == t_val, type_2]
+    combined_if = w_1*if_1$full_inf_func*if_1$n_adjustment + w_2*if_2$full_inf_func*if_2$n_adjustment
+    homo_if = calculate_influence_function(
+        g_val = g_val,
+        t_val = t_val,
+        lookup_indiv_table = lookup_indiv_table,
+        prop_score_known = TRUE
+    )
+    return(lst(
+        if_1,
+        if_2,
+        combined_if,
+        homo_if
+    ))
+}
+
+
+comp_if_2_2 = create_homo_if(2, 2, summ_indiv_dt, het_manual_did)
+
+comp_df = tibble(
+    homo = comp_if_2_2$homo_if$full_inf_func[, 1],
+    combined = comp_if_2_2$combined_if[, 1]
+) %>%
+    mutate(
+        rowid = 1:n()
+    )
+
+comp_if_2_2$if_1$n_adjustment*comp_if_2_2$if_2$n_adjustment
+
+comp_df %>%
+    mutate(
+        pct_diff = homo/combined
+    )  %>%
+    pull(pct_diff) %>%
+    unique()
+
+comp_df
+
+problem_rowids = comp_df %>%
+    filter(abs(homo - combined) > 1e-3) %>%
+    pull(rowid)
+problem_rowids
+comp_df %>%
+    filter(homo != combined)
+comp_if_2_2$if_2$full_inf_func[problem_rowids, ]
+
+summ_indiv_dt %>%
+    filter(rowid %in% problem_rowids) %>%
+    select(-const) %>%
+    select(-id)
+
+summ_indiv_dt %>%
+    filter(!(rowid %in% problem_rowids)) %>%
+    select(-const) %>%
+    select(-id)
+
+comp_df %>%
+    filter(rowid %in% problem_rowids)
+
+
+stop()
+test_calculate_influence_function(
+        g_val = 2,
+        t_val = 2,
+        hetero_val = 2,
+        hetero_var = "type",
+        lookup_indiv_table = summ_indiv_dt,
+        prop_score_known = TRUE
+    )
+
+
+test_calculate_influence_function(
+        g_val = 2,
+        t_val = 2,
+        lookup_indiv_table = summ_indiv_dt,
+        prop_score_known = TRUE
+    )
+
+comp_df %>%
+    mutate(
+        rowid = 1
+    )
+
+summ_indiv_dt[G == 2]
+
+comp_df %>%
+    mutate(diff = homo - combined)
+
+ed = cbind(
+)
+
+ed
+
+comp_if_2_2$if_1$n_adjustment
+1 - comp_if_2_2$if_2$n_adjustment
+
+(ed[, 1]/ed[, 2]) %>% unique()
+(ed[, 2]/ed[, 1]) %>% unique()
+
+
+manual_homo_inf_matrix = clean_infs(no_het_fit$inf_func_output)
+combine_fun = function(group_val, time_val, att_df, inf_func) {
+    w = att_df[, pr/sum(pr), .(group, time)][group == group_val & time == time_val, V1]
+    whichones = att_df[, group == group_val & time == time_val]
+    weighted_if = inf_func[, whichones] %*% w
+    return(weighted_if)
+}
+
+comp_fun = function(group_val, time_val, homo_att_df, homo_inf_func, het_att_df, het_inf_func) {
+    combined_if = combine_fun(group_val, time_val, het_att_df, het_inf_func)
+    which_idx = homo_att_df[, group == group_val & time == time_val]
+    homo_if = homo_inf_func[, which_idx]
+    return(lst(homo_if, combined_if[, 1]))
+}
+
+
+
+ed = comp_fun(
+    2,
+    2,
+    manual_did,
+    manual_homo_inf_matrix,
+    het_manual_did,
+    manual_het_inf_matrix
+)
+
+ed
+
+df = tibble(
+    homo = ed$homo_if,
+    combined = ed$combined_if
+)
+
+
+df
+
+df %>%
+    summarise_all(var)
+
+df %>%
+    ggplot(aes(
+        x = homo, 
+        y = combined
+    )) +
+    geom_point() +
+    geom_abline()
+
+manual_het_inf_matrix[3, ]
+manual_homo_inf_matrix[3, ]
+
+binary_sim_df
+
+df
+
+
+
+
 
 ## Het ES
 het_manual_es = het_manual_did %>%
     estimate_event_study(
-        inf_matrix = inf_matrix, 
+        inf_matrix = manual_het_inf_matrix, 
         y_var = "att_g_t",
         group_vector = summ_indiv_dt[, G],
+        prop_score_known = TRUE,
         biter = 10000, 
         hetero_var = "type")
 
@@ -195,33 +448,64 @@ test_that("Correct number of rows", {
 
 agg_het_es = het_manual_did %>%
     estimate_event_study(
-        inf_matrix = inf_matrix, 
+        inf_matrix = manual_het_inf_matrix, 
         y_var = "att_g_t",
-        group_vector = summ_indiv_dt[, G],
+        # group_vector = summ_indiv_dt[, G],
         prop_score_known = TRUE,
         biter = 1000)
 
 
-
-new_infs = map(manual_infs, "full_inf_func")
-new_adjustment = map(manual_infs, "n_adjustment")
-new_infs = map2(new_infs, new_adjustment, ~.x*.y)
-att_inf_output = cs_fit$inffunc
-att_infs = map(1:ncol(att_inf_output), ~as.matrix(att_inf_output[, .x]))
+combine_fun(2, 2, het_manual_did, manual_het_inf_matrix)
 
 
-inf_matrix = matrix(unlist(new_infs), nrow = nrow(new_infs[[1]]))
-
-new_infs = map(no_het_fit$inf_func_output, "full_inf_func")
-new_adjustment = map(no_het_fit$inf_func_output, "n_adjustment")
-new_infs = map2(new_infs, new_adjustment, ~.x*.y)
 
 
-inf_matrix = matrix(unlist(new_infs), nrow = nrow(new_infs[[1]]))
+
+combine_es_fun = function(et, att_df, inf_func) {
+    w = att_df[, pr/sum(pr), .(event.time, treated)][event.time == et, V1]
+    whichones = att_df[, event.time == et]
+    weighted_het_if = inf_func[, whichones] %*% w
+    return(weighted_het_if)
+}
+
+
+ets = het_manual_did$event.time %>% unique() %>% sort()
+combined_ifs = map(
+    ets,
+    ~combine_fun(.x, het_manual_did, manual_het_inf_matrix)
+)
+
+weighted_manual_homo_inf_matrix = do.call(cbind, combined_ifs)
+manual_homo_inf_matrix
+
+
+et_se = map_dbl(
+    combined_ifs,
+    ~calculate_se(.x, biter = 1000, n_cores = 20, cluster_id = NULL)
+)
+
+et_se
+
+agg_het_es$ed = et_se
+
+agg_het_es[, .(std.error, ed)]
+
+
+
+str(weighted_manual_homo_inf_matrix)
+
+
+ed = combine_fun(0, het_manual_did, manual_het_inf_matrix)
+
+weighted_het_if = manual_het_inf_matrix %*% w_het
+
+str(weighted_het_if)
+str(manual_het_inf_matrix)
+
 
 manual_es = no_het_fit$att_df %>%
     estimate_event_study(
-        inf_matrix = inf_matrix, 
+        inf_matrix = manual_homo_inf_matrix, 
         y_var = "att_g_t",
         group_vector = summ_indiv_dt[, G],
         biter = 10000)
@@ -229,10 +513,13 @@ manual_es = no_het_fit$att_df %>%
 
 agg_manual_es = no_het_fit$att_df %>%
     estimate_event_study(
-        inf_matrix = inf_matrix, 
+        inf_matrix = manual_homo_inf_matrix, 
         y_var = "att_g_t",
         prop_score_known = TRUE,
         biter = 10000)
+
+agg_het_es
+agg_manual_es
 
 ## Test that aggregating over het effects event study gives similar results to 
 # running unconditional event study
@@ -242,13 +529,14 @@ tidy_es_fit = cs_fit %>%
     aggte(type = "dynamic", biters = 10000) %>%
     tidy() %>%
     as_tibble()
+
 test_that("Het and Agg Event Study Matches", {
     es_comp_estimate = bind_cols(
-        agg_het_es = agg_manual_es$estimate,
+        agg_het_es = agg_het_es$estimate,
         cs_es = tidy_es_fit$estimate
     )
     es_comp_se = bind_cols(
-        agg_het_es = agg_manual_es$std.error,
+        agg_het_es = agg_het_es$std.error,
         cs_es = tidy_es_fit$std.error
     )
     map2(
@@ -265,6 +553,14 @@ test_that("Het and Agg Event Study Matches", {
     )
 
 })
+
+
+agg_manual_es %>%
+    select(event.time, estimate, std.error) %>%
+    as_tibble()
+
+tidy_es_fit %>%
+    select(event.time, estimate, std.error)
 
 
 
