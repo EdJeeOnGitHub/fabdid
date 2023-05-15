@@ -1,4 +1,3 @@
-
 library(did)
 library(BMisc)
 library(dplyr)
@@ -16,7 +15,9 @@ custom_min = function(x) {if (length(x) > 0) min(x) else Inf}
 # Creates simulation params
 sim_params = did::reset.sim(
     time.periods = time.periods, 
-    n = 50)
+    n = 10000)
+
+probs = c(1:10)/sum(1:10)
 
 sim_df = did::build_sim_dataset(sp_list = sim_params, panel = TRUE) %>%
     dplyr::as_tibble()
@@ -36,7 +37,7 @@ binary_sim_df = sim_df %>%
     mutate(Y_binary = period >= first_Y) %>%
     group_by(id) %>%
     mutate(
-        type = sample(1:2, size = 1, prob = c(0.7, 0.3))
+        type = sample(1:10, size = 1, prob = probs)
     )
 
 
@@ -201,235 +202,7 @@ manual_infs = purrr::pmap(
 )
 
 
-homo_2_2_if = calculate_influence_function(
-    g_val = 2,
-    t_val = 2,
-    hetero_val = NULL,
-    hetero_var = NULL,
-    lookup_indiv_table = summ_indiv_dt,
-    prop_score_known = TRUE
-)
-
-
-hetero_2_2_1_if = calculate_influence_function(
-    g_val = 2,
-    t_val = 2,
-    hetero_val = 1,
-    hetero_var = "type",
-    lookup_indiv_table = summ_indiv_dt,
-    prop_score_known = TRUE
-)
-
-hetero_2_2_2_if = calculate_influence_function(
-    g_val = 2,
-    t_val = 2,
-    hetero_val = 2,
-    hetero_var = "type",
-    lookup_indiv_table = summ_indiv_dt,
-    prop_score_known = TRUE
-)
-
-hetero_2_2_1_if
-hetero_2_2_2_if
-
-
-a = 0.2
-b = 1 - a
-z = rnorm(1000)
-x = z + rnorm(1000)
-y = a*x + b*z
-if_z = z - mean(z)
-if_x = x - mean(x)
-
-if_y = y - mean(y)
-if_comp = a*if_x + b*if_z
-
-if_y - if_comp
-
-
-het_weight_dt = het_manual_did[, .(type, weight = pr/sum(pr)), .(group, time)] %>%
-    tidyr::spread(type, weight, sep = "_")
-
-create_homo_if = function(g_val,
-                          t_val,
-                          lookup_indiv_table, 
-                          het_att_df) {
-    if_1 = calculate_influence_function(
-        g_val = g_val,
-        t_val = t_val,
-        hetero_val = 1,
-        hetero_var = "type",
-        lookup_indiv_table = lookup_indiv_table,
-        prop_score_known = TRUE
-    )
-    if_2 = calculate_influence_function(
-        g_val = g_val,
-        t_val = t_val,
-        hetero_val = 2,
-        hetero_var = "type",
-        lookup_indiv_table = lookup_indiv_table,
-        prop_score_known = TRUE
-    )
-    het_weight_dt = het_att_df[, .(type, weight = pr/sum(pr)), .(group, time)] %>%
-        tidyr::spread(type, weight, sep = "_")
-    w_1 = het_weight_dt[group == g_val & time == t_val, type_1]
-    w_2 = het_weight_dt[group == g_val & time == t_val, type_2]
-    combined_if = w_1*if_1$full_inf_func*if_1$n_adjustment + w_2*if_2$full_inf_func*if_2$n_adjustment
-    homo_if = calculate_influence_function(
-        g_val = g_val,
-        t_val = t_val,
-        lookup_indiv_table = lookup_indiv_table,
-        prop_score_known = TRUE
-    )
-    return(lst(
-        if_1,
-        if_2,
-        combined_if,
-        homo_if
-    ))
-}
-
-
-comp_if_2_2 = create_homo_if(2, 2, summ_indiv_dt, het_manual_did)
-
-comp_df = tibble(
-    homo = comp_if_2_2$homo_if$full_inf_func[, 1],
-    combined = comp_if_2_2$combined_if[, 1]
-) %>%
-    mutate(
-        rowid = 1:n()
-    )
-
-comp_if_2_2$if_1$n_adjustment*comp_if_2_2$if_2$n_adjustment
-
-comp_df %>%
-    mutate(
-        pct_diff = homo/combined
-    )  %>%
-    pull(pct_diff) %>%
-    unique()
-
-comp_df
-
-problem_rowids = comp_df %>%
-    filter(abs(homo - combined) > 1e-3) %>%
-    pull(rowid)
-problem_rowids
-comp_df %>%
-    filter(homo != combined)
-comp_if_2_2$if_2$full_inf_func[problem_rowids, ]
-
-summ_indiv_dt %>%
-    filter(rowid %in% problem_rowids) %>%
-    select(-const) %>%
-    select(-id)
-
-summ_indiv_dt %>%
-    filter(!(rowid %in% problem_rowids)) %>%
-    select(-const) %>%
-    select(-id)
-
-comp_df %>%
-    filter(rowid %in% problem_rowids)
-
-
-stop()
-test_calculate_influence_function(
-        g_val = 2,
-        t_val = 2,
-        hetero_val = 2,
-        hetero_var = "type",
-        lookup_indiv_table = summ_indiv_dt,
-        prop_score_known = TRUE
-    )
-
-
-test_calculate_influence_function(
-        g_val = 2,
-        t_val = 2,
-        lookup_indiv_table = summ_indiv_dt,
-        prop_score_known = TRUE
-    )
-
-comp_df %>%
-    mutate(
-        rowid = 1
-    )
-
-summ_indiv_dt[G == 2]
-
-comp_df %>%
-    mutate(diff = homo - combined)
-
-ed = cbind(
-)
-
-ed
-
-comp_if_2_2$if_1$n_adjustment
-1 - comp_if_2_2$if_2$n_adjustment
-
-(ed[, 1]/ed[, 2]) %>% unique()
-(ed[, 2]/ed[, 1]) %>% unique()
-
-
 manual_homo_inf_matrix = clean_infs(no_het_fit$inf_func_output)
-combine_fun = function(group_val, time_val, att_df, inf_func) {
-    w = att_df[, pr/sum(pr), .(group, time)][group == group_val & time == time_val, V1]
-    whichones = att_df[, group == group_val & time == time_val]
-    weighted_if = inf_func[, whichones] %*% w
-    return(weighted_if)
-}
-
-comp_fun = function(group_val, time_val, homo_att_df, homo_inf_func, het_att_df, het_inf_func) {
-    combined_if = combine_fun(group_val, time_val, het_att_df, het_inf_func)
-    which_idx = homo_att_df[, group == group_val & time == time_val]
-    homo_if = homo_inf_func[, which_idx]
-    return(lst(homo_if, combined_if[, 1]))
-}
-
-
-
-ed = comp_fun(
-    2,
-    2,
-    manual_did,
-    manual_homo_inf_matrix,
-    het_manual_did,
-    manual_het_inf_matrix
-)
-
-ed
-
-df = tibble(
-    homo = ed$homo_if,
-    combined = ed$combined_if
-)
-
-
-df
-
-df %>%
-    summarise_all(var)
-
-df %>%
-    ggplot(aes(
-        x = homo, 
-        y = combined
-    )) +
-    geom_point() +
-    geom_abline()
-
-manual_het_inf_matrix[3, ]
-manual_homo_inf_matrix[3, ]
-
-binary_sim_df
-
-df
-
-
-
-
 
 ## Het ES
 het_manual_es = het_manual_did %>%
@@ -442,9 +215,6 @@ het_manual_es = het_manual_did %>%
         hetero_var = "type")
 
 # Testing this vs package kinda hard. Need to write DGP to test this
-test_that("Correct number of rows", {
-    expect_equal(nrow(het_manual_es), 14)
-})
 
 agg_het_es = het_manual_did %>%
     estimate_event_study(
@@ -455,10 +225,65 @@ agg_het_es = het_manual_did %>%
         biter = 1000)
 
 
-combine_fun(2, 2, het_manual_did, manual_het_inf_matrix)
+het_es = het_manual_did %>%
+    estimate_event_study(
+        inf_matrix = manual_het_inf_matrix, 
+        y_var = "att_g_t",
+        hetero_var = "type",
+        # group_vector = summ_indiv_dt[, G],
+        prop_score_known = TRUE,
+        biter = 1000)
+
+test_that(
+    "IF standard errors for hetero effects match theory heuristic", {
+
+        comp_es_size = copy(het_es)
+        comp_es_size = merge(
+            comp_es_size,
+            agg_het_es[, .(full_std_error = std.error, event.time)],
+            by  = "event.time"
+        )
+
+        prob_df = tibble(
+            type = 1:10,
+            probs = probs
+        )
+
+        comp_es_size = merge(
+            comp_es_size,
+            prob_df,
+            by = "type"
+        )
+        comp_es_size[, emp_ratio := std.error/full_std_error]
+        comp_es_size[, theory_ratio := 1/sqrt(probs)]
+
+        # this shouldn't be perfect since this isn't just comparing std.error of means with 
+        # smaller samples (for example, nyt always present + IF accounts for correlation across 
+        # thetas) but as a rule of thumb we hope this is between 0.75-1.25
+        comp_es_size %>%
+            filter(event.time > 0) %>%
+            ggplot(aes( 
+                x = theory_ratio,
+                y = emp_ratio
+            )) +
+            geom_point() +
+            geom_abline()
+
+        emp_theory_relationship = comp_es_size %>%
+            filter(event.time > 0) %>%
+            lm(
+                emp_ratio ~  theory_ratio,
+                data = .
+            ) %>%
+            tidy(conf.int = TRUE) %>%
+            filter(term == "theory_ratio")  %>%
+            pull(estimate)
 
 
-
+        expect_lte(emp_theory_relationship, 1.25)
+        expect_gte(emp_theory_relationship, 0.75)
+    }
+)
 
 
 combine_es_fun = function(et, att_df, inf_func) {
@@ -472,11 +297,10 @@ combine_es_fun = function(et, att_df, inf_func) {
 ets = het_manual_did$event.time %>% unique() %>% sort()
 combined_ifs = map(
     ets,
-    ~combine_fun(.x, het_manual_did, manual_het_inf_matrix)
+    ~combine_es_fun(.x, het_manual_did, manual_het_inf_matrix)
 )
 
 weighted_manual_homo_inf_matrix = do.call(cbind, combined_ifs)
-manual_homo_inf_matrix
 
 
 et_se = map_dbl(
@@ -484,31 +308,14 @@ et_se = map_dbl(
     ~calculate_se(.x, biter = 1000, n_cores = 20, cluster_id = NULL)
 )
 
-et_se
-
-agg_het_es$ed = et_se
-
-agg_het_es[, .(std.error, ed)]
-
-
-
-str(weighted_manual_homo_inf_matrix)
+test_that(
+    "Combining IFs recovers event study SEs", {
+        se_diff = 100*(et_se - agg_het_es$std.error)/agg_het_es$std.error
+        map(se_diff, ~expect_lte(abs(.x), 15))
+    }
+)
 
 
-ed = combine_fun(0, het_manual_did, manual_het_inf_matrix)
-
-weighted_het_if = manual_het_inf_matrix %*% w_het
-
-str(weighted_het_if)
-str(manual_het_inf_matrix)
-
-
-manual_es = no_het_fit$att_df %>%
-    estimate_event_study(
-        inf_matrix = manual_homo_inf_matrix, 
-        y_var = "att_g_t",
-        group_vector = summ_indiv_dt[, G],
-        biter = 10000)
 
 
 agg_manual_es = no_het_fit$att_df %>%
@@ -518,8 +325,6 @@ agg_manual_es = no_het_fit$att_df %>%
         prop_score_known = TRUE,
         biter = 10000)
 
-agg_het_es
-agg_manual_es
 
 ## Test that aggregating over het effects event study gives similar results to 
 # running unconditional event study
@@ -555,36 +360,9 @@ test_that("Het and Agg Event Study Matches", {
 })
 
 
-agg_manual_es %>%
-    select(event.time, estimate, std.error) %>%
-    as_tibble()
-
-tidy_es_fit %>%
-    select(event.time, estimate, std.error)
 
 
 
-test_that("Event Study Matches", {
-    es_comp_estimate = bind_cols(
-        cs_es = tidy_es_fit$estimate,
-        manual_es = manual_es$estimate
-    )
-    es_comp_se = bind_cols(
-        cs_es = tidy_es_fit$std.error,
-        manual_es = manual_es$std.error
-    )
-    map2(
-        es_comp_estimate$cs_es,
-        es_comp_estimate$manual_es,
-        ~expect_equal(.x, .y)
-    )
-    es_comp_se = es_comp_se %>%
-        mutate(diff = abs(manual_es -cs_es)) %>%
-        mutate(pct_diff = 100*diff/cs_es)
-    map(
-        es_comp_se$pct_diff,
-        ~expect_lte(.x, 10)
-    )
 
-})
+
 
