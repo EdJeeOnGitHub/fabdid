@@ -346,7 +346,7 @@ calculate_se = function(inf_matrix,
         n_clusters = length(unique(cluster_id))
         cluster_n = aggregate(cluster_id, by = list(cluster_id), length)[, 2]
         cluster_mean_if = rowsum(inf_matrix, cluster_id, reorder = TRUE) / cluster_n
-        bres = sqrt(n_clusters) * bs_fun(cluster_mean_if, biter, pl = pl, n_cores)
+        bres = sqrt(n_clusters) * bs_fun(cluster_mean_if, biter, pl = pl, cores = n_cores, cluster_id_2 = cluster_id_2)
     }
 
         V = cov(bres)

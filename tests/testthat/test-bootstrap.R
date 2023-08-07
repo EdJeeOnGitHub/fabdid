@@ -4,10 +4,9 @@ library(dplyr)
 library(purrr)
 
 set.seed(1232)
-N_indiv = 1000
+N_indiv = 52
 N_att = 200
 if_test = matrix(rnorm(N_indiv*N_att), nrow = N_indiv, ncol = N_att)
-
 
 
 test_that("IF output exists", {
@@ -48,3 +47,20 @@ test_that("R SEs Faster", {
     ed_time = mean(se_bench$time[se_bench$expr == "ed_se"])
     expect_lte(ed_time, bc_time)
 })
+
+
+## Now test clustered standard errors
+N_clusters = 12
+cluster_id = sample(1:N_clusters, replace = TRUE, N_indiv)
+
+clust_if = run_nested_multiplier_bootstrap(if_test, 1, cluster_id_2 = cluster_id)
+clust_se = calculate_se(
+    if_test,
+    bs_fun_type = "ed",
+    cluster_id_2 = cluster_id
+)
+
+test_that("Clustered SEs Exist",  {
+    expect_equal(length(clust_se), N_att)
+}
+)
