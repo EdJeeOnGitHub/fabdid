@@ -407,11 +407,27 @@ calculate_influence_function = function(g_val,
 #' @param n_cores Number of cores to use in parallel
 #' @param alp Test size, defaults to 0.05.
 #' @param cluster_id Vector nx1 of cluster IDs. 
+#' @param bs_fun_type Either `ed` or `bc`  - which type of bootstrap function to use. 
+#'  Ed's uses matrix multiplication in R whereas BC's uses RCpp.
 #' @export
-calculate_se = function(inf_matrix, cluster_id = NULL, biter = 2000, pl = TRUE, n_cores = 8, alp = 0.05){
+calculate_se = function(inf_matrix, 
+                        cluster_id = NULL, 
+                        cluster_id_2 = NULL,
+                        biter = 2000, 
+                        pl = TRUE, 
+                        n_cores = 8, 
+                        alp = 0.05,
+                        bs_fun_type = "bc"
+                        ){
+    if (bs_fun_type == "bc") {
+        bs_fun = run_multiplier_bootstrap
+    }
+    if (bs_fun_type == "ed") {
+        bs_fun = run_nested_multiplier_bootstrap
+    }
     if (is.null(cluster_id)) {
         n = nrow(inf_matrix)
-        bres = sqrt(n) * run_multiplier_bootstrap(
+        bres = sqrt(n) * bs_fun(
             inf_matrix, 
             biter, 
             pl = pl, 
@@ -421,7 +437,7 @@ calculate_se = function(inf_matrix, cluster_id = NULL, biter = 2000, pl = TRUE, 
         n_clusters = length(unique(cluster_id))
         cluster_n = aggregate(cluster_id, by = list(cluster_id), length)[, 2]
         cluster_mean_if = rowsum(inf_matrix, cluster_id, reorder = TRUE) / cluster_n
-        bres = sqrt(n_clusters) * run_multiplier_bootstrap(cluster_mean_if, biter, pl = pl, n_cores)
+        bres = sqrt(n_clusters) * bs_fun(cluster_mean_if, biter, pl = pl, n_cores)
     }
 
         V = cov(bres)
@@ -434,6 +450,90 @@ calculate_se = function(inf_matrix, cluster_id = NULL, biter = 2000, pl = TRUE, 
         crit.val <- quantile(bT, 1-alp, type=1, na.rm = T)
         se = as.numeric(bSigma) / sqrt(n_clusters)
     return(se)
+}
+
+
+
+#' Draw Rademacher Weights 
+#'
+#' @description Rademacher Random Variable 
+#'
+#' @param N Number of draws 
+#' @export
+rrademacher = function(N) {
+  sample(c(-1, 1), replace = TRUE, N)
+}
+
+
+#'  Create Rademacher Matrix with Clusters 
+#'
+#' @description Draw rademacher weights for K clusters and B iters, then convert
+#'  into B x N matrix where N is number of individuals.
+#'
+#' @param N_unique_clusters Number of clusters in cluster vector
+#' @param cluster_id Nx1 vector where N is number of indiv. Holds CONTIGUOUS cluster id.
+#' @param biters Number of bootstrap iterations to draw
+#' @export
+create_cluster_rademacher = function(N_unique_clusters, cluster_id, biters) {
+    r_rad_id_clust = matrix(
+        rrademacher(N_unique_clusters * biters), nrow = N_unique_clusters, ncol = biters
+    )
+    r_rad_mat = t(r_rad_id_clust[cluster_id, ])
+    return(r_rad_mat)
+}
+
+
+#' Run District/Town Multiplier Bootstrap
+#'
+#' @description Multiplier Bootstrap
+#'
+#' @param inf.func Influence function matrix. NxK where N is N indiv and K is # of ATTs
+#' @param biters Bootstrap iterations. N.B. plural use of arg here but biter elsewhere. Nice. 
+#' @param pl Process in parallel
+#' @param cores Number of cores to use if parallel processing
+#' @param cluster_id_2 "Upper" cluster id for nested clusters 
+#' 
+#' TAKEN DIRECTLY FROM BCALLAWAY11/DID
+#' @export
+run_nested_multiplier_bootstrap <- function(inf.func, 
+                                                   biters, 
+                                                   pl = FALSE, 
+                                                   cores = 1,
+                                                   cluster_id_2 = NULL
+                                                   ) {
+  ngroups = ceiling(biters/cores)
+  chunks = rep(ngroups, cores)
+  # Round down so you end up with the right number of biters
+  chunks[1] = chunks[1] + biters - sum(chunks)
+  r_mult_bs = function(inf.func, biters, cluster_id_2) {
+      B_lower = matrix(rrademacher(nrow(inf.func)*biters), nrow = biters, ncol = nrow(inf.func))
+    if (is.null(cluster_id_2)) {
+      B = B_lower
+    } else {
+      N_unique_clusters = length(unique(cluster_id_2))
+      B_upper = create_cluster_rademacher(N_unique_clusters, cluster_id_2, biters)
+      B = B_lower * B_upper # elementwise multiplication of upper and lower Rad draws
+    }
+    B %*% inf.func / nrow(inf.func)
+  }
+  n <- nrow(inf.func)
+  parallel.function <- function(biters) {
+    # BMisc::multiplier_bootstrap(inf.func, biters)
+    r_mult_bs(inf.func, biters, cluster_id_2)
+  }
+  # From tests, this is about where it becomes worth it to parallelize
+  if(n > 2500 & pl == TRUE & cores > 1) {
+    results = parallel::mclapply(
+      chunks,
+      FUN = parallel.function,
+      mc.cores = cores
+    )
+    results = do.call(rbind, results)
+  } else {
+    # results = BMisc::multiplier_bootstrap(inf.func, biters)
+    results = r_mult_bs(inf.func, biters, cluster_id_2)
+  }
+  return(results)
 }
 
 #' Run Multiplier Bootstrap
