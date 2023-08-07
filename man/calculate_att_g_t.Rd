@@ -10,7 +10,8 @@ calculate_att_g_t(
   lookup_table,
   N_table,
   hetero_var,
-  verbose = FALSE
+  verbose = FALSE,
+  set_div_0_to_0 = FALSE
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ first switched  on.}
 \item{hetero_var}{Factor variable for heterogeneous treatment effects.}
 
 \item{verbose}{Whether to return all subcomponents used in ATT calculation (for debugging primarily)}
+
+\item{set_div_0_to_0}{If there are no individuals present, set probability to 0 instead of NaN}
 }
 \description{
 Given a 'lookup table' of when someone first was treated, calculate

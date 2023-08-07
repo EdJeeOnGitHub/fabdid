@@ -316,6 +316,7 @@ calculate_influence_function = function(g_val,
 #' @param n_cores Number of cores to use in parallel
 #' @param alp Test size, defaults to 0.05.
 #' @param cluster_id Vector nx1 of cluster IDs. 
+#' @param cluster_id_2 Vector n_cl_1x1 of cluster IDs - for 'nested' cluster bootstrap. 
 #' @param bs_fun_type Either `ed` or `bc`  - which type of bootstrap function to use. 
 #'  Ed's uses matrix multiplication in R whereas BC's uses RCpp.
 #' @export
@@ -453,10 +454,11 @@ run_nested_multiplier_bootstrap <- function(inf.func,
 #' @param biters Bootstrap iterations. N.B. plural use of arg here but biter elsewhere. Nice. 
 #' @param pl Process in parallel
 #' @param cores Number of cores to use if parallel processing
+#' @param cluster_id_2 Unused argument, just added to keep calls to run_nested_multiplier_bootstrap the same
 #' 
 #' TAKEN DIRECTLY FROM BCALLAWAY11/DID
 #' @export
-run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1) {
+run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1, cluster_id_2 = NULL) {
   ngroups = ceiling(biters/cores)
   chunks = rep(ngroups, cores)
   # Round down so you end up with the right number of biters

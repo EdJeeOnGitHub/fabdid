@@ -4,7 +4,13 @@
 \alias{run_multiplier_bootstrap}
 \title{Run Multiplier Bootstrap}
 \usage{
-run_multiplier_bootstrap(inf.func, biters, pl = FALSE, cores = 1)
+run_multiplier_bootstrap(
+  inf.func,
+  biters,
+  pl = FALSE,
+  cores = 1,
+  cluster_id_2 = NULL
+)
 }
 \arguments{
 \item{inf.func}{Influence function matrix. NxK where N is N indiv and K is # of ATTs}
@@ -13,7 +19,9 @@ run_multiplier_bootstrap(inf.func, biters, pl = FALSE, cores = 1)
 
 \item{pl}{Process in parallel}
 
-\item{cores}{Number of cores to use if parallel processing
+\item{cores}{Number of cores to use if parallel processing}
+
+\item{cluster_id_2}{Unused argument, just added to keep calls to run_nested_multiplier_bootstrap the same
 
 TAKEN DIRECTLY FROM BCALLAWAY11/DID}
 }

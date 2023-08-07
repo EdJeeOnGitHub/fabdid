@@ -7,16 +7,20 @@
 calculate_se(
   inf_matrix,
   cluster_id = NULL,
+  cluster_id_2 = NULL,
   biter = 2000,
   pl = TRUE,
   n_cores = 8,
-  alp = 0.05
+  alp = 0.05,
+  bs_fun_type = "bc"
 )
 }
 \arguments{
 \item{inf_matrix}{NxK matrix with N indiv observations and K ATTs}
 
 \item{cluster_id}{Vector nx1 of cluster IDs.}
+
+\item{cluster_id_2}{Vector n_cl_1x1 of cluster IDs - for 'nested' cluster bootstrap.}
 
 \item{biter}{Number of bootstrap iterations}
 
@@ -25,6 +29,9 @@ calculate_se(
 \item{n_cores}{Number of cores to use in parallel}
 
 \item{alp}{Test size, defaults to 0.05.}
+
+\item{bs_fun_type}{Either \code{ed} or \code{bc}  - which type of bootstrap function to use.
+Ed's uses matrix multiplication in R whereas BC's uses RCpp.}
 }
 \description{
 Calculate standard errors using influence function

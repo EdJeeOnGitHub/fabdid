@@ -4,7 +4,7 @@ library(dplyr)
 library(purrr)
 
 set.seed(1232)
-N_indiv = 52
+N_indiv = 1000
 N_att = 200
 if_test = matrix(rnorm(N_indiv*N_att), nrow = N_indiv, ncol = N_att)
 

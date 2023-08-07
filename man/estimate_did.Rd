@@ -16,7 +16,8 @@ estimate_did(
   prop_score_known = FALSE,
   biter = 1000,
   n_cores = 8,
-  hetero_var = NULL
+  hetero_var = NULL,
+  set_div_0_to_0 = FALSE
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ estimate_did(
 \item{n_cores}{How many cores to use when bootstrapping}
 
 \item{hetero_var}{Factor variable used to estimate heterogeneous treatment effects.}
+
+\item{set_div_0_to_0}{If there are no individuals present, set probability to 0 instead of NaN}
 }
 \description{
 Estimates CS DiD when Y data is binary and 'absorbing' (once you're vaccinated
