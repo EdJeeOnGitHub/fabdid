@@ -212,7 +212,9 @@ het_manual_es = het_manual_did %>%
         group_vector = summ_indiv_dt[, G],
         prop_score_known = TRUE,
         biter = 10000, 
-        hetero_var = "type")
+        hetero_var = "type", 
+        n_cores = 2
+        )
 
 # Testing this vs package kinda hard. Need to write DGP to test this
 
@@ -222,7 +224,9 @@ agg_het_es = het_manual_did %>%
         y_var = "att_g_t",
         # group_vector = summ_indiv_dt[, G],
         prop_score_known = TRUE,
-        biter = 1000)
+        biter = 1000, 
+        n_cores = 2
+        )
 
 
 het_es = het_manual_did %>%
@@ -232,7 +236,9 @@ het_es = het_manual_did %>%
         hetero_var = "type",
         # group_vector = summ_indiv_dt[, G],
         prop_score_known = TRUE,
-        biter = 1000)
+        biter = 1000, 
+        n_cores = 2
+        )
 
 test_that(
     "IF standard errors for hetero effects match theory heuristic", {
@@ -260,14 +266,14 @@ test_that(
         # this shouldn't be perfect since this isn't just comparing std.error of means with 
         # smaller samples (for example, nyt always present + IF accounts for correlation across 
         # thetas) but as a rule of thumb we hope this is between 0.75-1.25
-        comp_es_size %>%
-            filter(event.time > 0) %>%
-            ggplot(aes( 
-                x = theory_ratio,
-                y = emp_ratio
-            )) +
-            geom_point() +
-            geom_abline()
+        # comp_es_size %>%
+        #     filter(event.time > 0) %>%
+        #     ggplot(aes( 
+        #         x = theory_ratio,
+        #         y = emp_ratio
+        #     )) +
+        #     geom_point() +
+        #     geom_abline()
 
         emp_theory_relationship = comp_es_size %>%
             filter(event.time > 0) %>%
@@ -305,7 +311,7 @@ weighted_manual_homo_inf_matrix = do.call(cbind, combined_ifs)
 
 et_se = map_dbl(
     combined_ifs,
-    ~calculate_se(.x, biter = 1000, n_cores = 20, cluster_id = NULL)
+    ~calculate_se(.x, biter = 1000, n_cores = 2, cluster_id = NULL)
 )
 
 test_that(
@@ -323,7 +329,9 @@ agg_manual_es = no_het_fit$att_df %>%
         inf_matrix = manual_homo_inf_matrix, 
         y_var = "att_g_t",
         prop_score_known = TRUE,
-        biter = 10000)
+        biter = 10000, 
+        n_cores = 2
+        )
 
 
 ## Test that aggregating over het effects event study gives similar results to 

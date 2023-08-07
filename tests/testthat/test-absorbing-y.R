@@ -281,7 +281,8 @@ cluster_summ_indiv_dt = create_indiv_first_treat_dt(df, "first_Y", "G", "id", cl
 manual_cluster_se = calculate_se(
     inf_matrix,
     biter = 10000, 
-    cluster_id = cluster_summ_indiv_dt[, cluster_id]
+    cluster_id = cluster_summ_indiv_dt[, cluster_id],
+    cluster_id_2 = NULL
     )
 
 
