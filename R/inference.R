@@ -316,7 +316,7 @@ calculate_influence_function = function(g_val,
 #' @param n_cores Number of cores to use in parallel
 #' @param alp Test size, defaults to 0.05.
 #' @param cluster_id Vector nx1 of cluster IDs. 
-#' @param cluster_id_2 Vector n_cl_1x1 of cluster IDs - for 'nested' cluster bootstrap. 
+#' @param cluster_id_2 Vector nx1 of cluster IDs - for 'nested' cluster bootstrap. 
 #' @param bs_fun_type Either `ed` or `bc`  - which type of bootstrap function to use. 
 #'  Ed's uses matrix multiplication in R whereas BC's uses RCpp.
 #' @export
@@ -347,7 +347,22 @@ calculate_se = function(inf_matrix,
         n_clusters = length(unique(cluster_id))
         cluster_n = aggregate(cluster_id, by = list(cluster_id), length)[, 2]
         cluster_mean_if = rowsum(inf_matrix, cluster_id, reorder = TRUE) / cluster_n
-        bres = sqrt(n_clusters) * bs_fun(cluster_mean_if, biter, pl = pl, cores = n_cores, cluster_id_2 = cluster_id_2)
+        if (is.null(cluster_id_2)) {
+          cluster_id_2_short = NULL
+        } else {
+          cluster_id_2_short = aggregate(
+            cluster_id_2,
+            by = list(cluster_id),
+            unique
+          )[, 2]
+        }
+
+        bres = sqrt(n_clusters) * bs_fun(
+          cluster_mean_if, 
+          biter, 
+          pl = pl, 
+          cores = n_cores, 
+          cluster_id_2 = cluster_id_2_short)
     }
 
         V = cov(bres)
@@ -381,13 +396,14 @@ rrademacher = function(N) {
 #'  into B x N matrix where N is number of individuals.
 #'
 #' @param N_unique_clusters Number of clusters in cluster vector
-#' @param cluster_id Nx1 vector where N is number of indiv. Holds CONTIGUOUS cluster id.
+#' @param cluster_id N_cluster_outer x 1 vector where N is number of indiv
 #' @param biters Number of bootstrap iterations to draw
 #' @export
 create_cluster_rademacher = function(N_unique_clusters, cluster_id, biters) {
     r_rad_id_clust = matrix(
         rrademacher(N_unique_clusters * biters), nrow = N_unique_clusters, ncol = biters
     )
+    rownames(r_rad_id_clust) = unique(cluster_id)
     r_rad_mat = t(r_rad_id_clust[cluster_id, ])
     return(r_rad_mat)
 }
@@ -403,7 +419,7 @@ create_cluster_rademacher = function(N_unique_clusters, cluster_id, biters) {
 #' @param cores Number of cores to use if parallel processing
 #' @param cluster_id_2 "Upper" cluster id for nested clusters 
 #' 
-#' TAKEN DIRECTLY FROM BCALLAWAY11/DID
+#' TAKEN DIRECTLY FROM BCALLAWAY11/DID - edited for nested booting
 #' @export
 run_nested_multiplier_bootstrap <- function(inf.func, 
                                                    biters, 
