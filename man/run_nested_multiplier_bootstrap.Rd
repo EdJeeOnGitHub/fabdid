@@ -9,7 +9,8 @@ run_nested_multiplier_bootstrap(
   biters,
   pl = FALSE,
   cores = 1,
-  cluster_id_2 = NULL
+  cluster_id_2 = NULL,
+  weight_type = "rademacher"
 )
 }
 \arguments{
@@ -21,9 +22,11 @@ run_nested_multiplier_bootstrap(
 
 \item{cores}{Number of cores to use if parallel processing}
 
-\item{cluster_id_2}{"Upper" cluster id for nested clusters
+\item{cluster_id_2}{"Upper" cluster id for nested clusters}
 
-TAKEN DIRECTLY FROM BCALLAWAY11/DID}
+\item{weight_type}{\code{rademacher} or \code{rnorm} - which weight type to use
+
+TAKEN DIRECTLY FROM BCALLAWAY11/DID - edited for nested booting}
 }
 \description{
 Multiplier Bootstrap

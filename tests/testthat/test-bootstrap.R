@@ -11,7 +11,6 @@ test_that("SEs similar using cluster ID manually", {
     # Here we test that we can manually apply multiplier bootstrap to influence 
     # matrix - basically rely on fact influence matrix is ordered by unit_id 
     # so if we just group_by unit ID and save the cluster var we're good to go
-
     ncl <- 1
     time.periods <- 4
     biters <- 200
@@ -35,7 +34,7 @@ test_that("SEs similar using cluster ID manually", {
     test_if = cs_fit$inffunc %>% as.matrix()
     data = as.data.table(cs_fit$DIDparams$data)
     cluster_id_manual = data[, .(cluster = unique(cluster)), id][,cluster]
-    r_se = calculate_se(test_if, biter = 2000, cluster_id = cluster_id_manual, bs_fun_type = "ed")
+    r_se = calculate_se(test_if, biter = 2000, cluster_id = cluster_id_manual, bs_fun_type = "nested")
     pkg_se = cs_fit$se
     abs_diff = abs(r_se - pkg_se)
     expect_true(mean(abs_diff) < 1e-2)
@@ -72,17 +71,22 @@ test_that("R Faster", {
 
 test_that("Standard Errors Match-ish", {
     bc_se = calculate_se(if_test, bs_fun_type = "bc")
-    ed_se = calculate_se(if_test, bs_fun_type = "ed")
+    ed_se = calculate_se(if_test, bs_fun_type = "nested")
     se_diff = abs(bc_se - ed_se)
     expect_true(all(se_diff < 1e-2))
 })
 
-
+test_that("Standard Errors Match-ish, w/ rnorm weights", {
+    bc_se = calculate_se(if_test, bs_fun_type = "bc")
+    ed_rnorm_se = calculate_se(if_test, bs_fun_type = "nested", weight_type = "rnorm")
+    se_diff = abs(bc_se - ed_rnorm_se)
+    expect_true(all(se_diff < 1e-2))
+})
 
 test_that("R SEs Faster", {
     se_bench = microbenchmark::microbenchmark(
         bc_se = calculate_se(if_test, bs_fun_type = "bc"),
-        ed_se = calculate_se(if_test, bs_fun_type = "ed"),
+        ed_se = calculate_se(if_test, bs_fun_type = "nested"),
         times = 10
     )
     bc_time = mean(se_bench$time[se_bench$expr == "bc_se"])
@@ -98,8 +102,9 @@ cluster_id = sample(1:N_clusters, replace = TRUE, N_indiv)
 clust_if = run_nested_multiplier_bootstrap(if_test, 1, cluster_id_2 = cluster_id)
 clust_se = calculate_se(
     if_test,
-    bs_fun_type = "ed",
-    cluster_id_2 = cluster_id
+    bs_fun_type = "nested",
+    cluster_id_2 = cluster_id,
+    weight_type = "rnorm"
 )
 
 test_that("Clustered SEs Exist",  {

@@ -12,7 +12,8 @@ calculate_se(
   pl = TRUE,
   n_cores = 8,
   alp = 0.05,
-  bs_fun_type = "bc"
+  bs_fun_type = "bc",
+  weight_type = "rademacher"
 )
 }
 \arguments{
@@ -20,7 +21,7 @@ calculate_se(
 
 \item{cluster_id}{Vector nx1 of cluster IDs.}
 
-\item{cluster_id_2}{Vector n_cl_1x1 of cluster IDs - for 'nested' cluster bootstrap.}
+\item{cluster_id_2}{Vector nx1 of cluster IDs - for 'nested' cluster bootstrap.}
 
 \item{biter}{Number of bootstrap iterations}
 
@@ -30,8 +31,10 @@ calculate_se(
 
 \item{alp}{Test size, defaults to 0.05.}
 
-\item{bs_fun_type}{Either \code{ed} or \code{bc}  - which type of bootstrap function to use.
-Ed's uses matrix multiplication in R whereas BC's uses RCpp.}
+\item{bs_fun_type}{Either \code{nested} or \code{bc}  - which type of bootstrap function to use.
+\code{nested} uses matrix multiplication in R and allows for nested design whereas BC's uses RCpp.}
+
+\item{weight_type}{How to draw wild cluster weights}
 }
 \description{
 Calculate standard errors using influence function

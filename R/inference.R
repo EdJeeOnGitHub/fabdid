@@ -317,8 +317,9 @@ calculate_influence_function = function(g_val,
 #' @param alp Test size, defaults to 0.05.
 #' @param cluster_id Vector nx1 of cluster IDs. 
 #' @param cluster_id_2 Vector nx1 of cluster IDs - for 'nested' cluster bootstrap. 
-#' @param bs_fun_type Either `ed` or `bc`  - which type of bootstrap function to use. 
-#'  Ed's uses matrix multiplication in R whereas BC's uses RCpp.
+#' @param bs_fun_type Either `nested` or `bc`  - which type of bootstrap function to use. 
+#'  `nested` uses matrix multiplication in R and allows for nested design whereas BC's uses RCpp.
+#' @param weight_type How to draw wild cluster weights
 #' @export
 calculate_se = function(inf_matrix, 
                         cluster_id = NULL, 
@@ -327,21 +328,25 @@ calculate_se = function(inf_matrix,
                         pl = TRUE, 
                         n_cores = 8, 
                         alp = 0.05,
-                        bs_fun_type = "bc"
+                        bs_fun_type = "bc",
+                        weight_type = "rademacher"
                         ){
     if (bs_fun_type == "bc") {
         bs_fun = run_multiplier_bootstrap
     }
-    if (bs_fun_type == "ed") {
+    if (bs_fun_type == "nested") {
         bs_fun = run_nested_multiplier_bootstrap
     }
     if (is.null(cluster_id)) {
         n = nrow(inf_matrix)
         bres = sqrt(n) * bs_fun(
-            inf_matrix, 
-            biter, 
+            inf.func = inf_matrix, 
+            biters = biter, 
             pl = pl, 
-            n_cores)
+            cores = n_cores,
+            cluster_id_2 = NULL,
+            weight_type = weight_type
+            )
         n_clusters = n
     } else {
         n_clusters = length(unique(cluster_id))
@@ -358,11 +363,13 @@ calculate_se = function(inf_matrix,
         }
 
         bres = sqrt(n_clusters) * bs_fun(
-          cluster_mean_if, 
-          biter, 
+          inf.func = cluster_mean_if, 
+          biters = biter, 
           pl = pl, 
           cores = n_cores, 
-          cluster_id_2 = cluster_id_2_short)
+          cluster_id_2 = cluster_id_2_short,
+          weight_type = weight_type
+          )
     }
 
         V = cov(bres)
@@ -390,7 +397,7 @@ rrademacher = function(N) {
 }
 
 
-#'  Create Rademacher Matrix with Clusters 
+#'  Create Weight Matrix with Clusters 
 #'
 #' @description Draw rademacher weights for K clusters and B iters, then convert
 #'  into B x N matrix where N is number of individuals.
@@ -398,10 +405,12 @@ rrademacher = function(N) {
 #' @param N_unique_clusters Number of clusters in cluster vector
 #' @param cluster_id N_cluster_outer x 1 vector where N is number of indiv
 #' @param biters Number of bootstrap iterations to draw
+#' @param weight_type Type of weights to draw 
 #' @export
-create_cluster_rademacher = function(N_unique_clusters, cluster_id, biters) {
+create_cluster_weights = function(N_unique_clusters, cluster_id, biters, weight_type) {
+    rfun = if (weight_type == "rademacher") rrademacher else rnorm
     r_rad_id_clust = matrix(
-        rrademacher(N_unique_clusters * biters), nrow = N_unique_clusters, ncol = biters
+        rfun(N_unique_clusters * biters), nrow = N_unique_clusters, ncol = biters
     )
     rownames(r_rad_id_clust) = unique(cluster_id)
     r_rad_mat = t(r_rad_id_clust[cluster_id, ])
@@ -418,6 +427,7 @@ create_cluster_rademacher = function(N_unique_clusters, cluster_id, biters) {
 #' @param pl Process in parallel
 #' @param cores Number of cores to use if parallel processing
 #' @param cluster_id_2 "Upper" cluster id for nested clusters 
+#' @param weight_type `rademacher` or `rnorm` - which weight type to use 
 #' 
 #' TAKEN DIRECTLY FROM BCALLAWAY11/DID - edited for nested booting
 #' @export
@@ -425,19 +435,21 @@ run_nested_multiplier_bootstrap <- function(inf.func,
                                                    biters, 
                                                    pl = FALSE, 
                                                    cores = 1,
-                                                   cluster_id_2 = NULL
+                                                   cluster_id_2 = NULL,
+                                                   weight_type = "rademacher"
                                                    ) {
   ngroups = ceiling(biters/cores)
   chunks = rep(ngroups, cores)
   # Round down so you end up with the right number of biters
   chunks[1] = chunks[1] + biters - sum(chunks)
+  rfun = if (weight_type == "rademacher") rrademacher else rnorm
   r_mult_bs = function(inf.func, biters, cluster_id_2) {
-      B_lower = matrix(rrademacher(nrow(inf.func)*biters), nrow = biters, ncol = nrow(inf.func))
+      B_lower = matrix(rfun(nrow(inf.func)*biters), nrow = biters, ncol = nrow(inf.func))
     if (is.null(cluster_id_2)) {
       B = B_lower
     } else {
       N_unique_clusters = length(unique(cluster_id_2))
-      B_upper = create_cluster_rademacher(N_unique_clusters, cluster_id_2, biters)
+      B_upper = create_cluster_weights(N_unique_clusters, cluster_id_2, biters, weight_type)
       B = B_lower * B_upper # elementwise multiplication of upper and lower Rad draws
     }
     B %*% inf.func / nrow(inf.func)
@@ -470,11 +482,11 @@ run_nested_multiplier_bootstrap <- function(inf.func,
 #' @param biters Bootstrap iterations. N.B. plural use of arg here but biter elsewhere. Nice. 
 #' @param pl Process in parallel
 #' @param cores Number of cores to use if parallel processing
-#' @param cluster_id_2 Unused argument, just added to keep calls to run_nested_multiplier_bootstrap the same
+#' @param ... Unused argument, just added to keep calls to run_nested_multiplier_bootstrap the same
 #' 
 #' TAKEN DIRECTLY FROM BCALLAWAY11/DID
 #' @export
-run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1, cluster_id_2 = NULL) {
+run_multiplier_bootstrap <- function(inf.func, biters, pl = FALSE, cores = 1, ...) {
   ngroups = ceiling(biters/cores)
   chunks = rep(ngroups, cores)
   # Round down so you end up with the right number of biters
