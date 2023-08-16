@@ -443,21 +443,29 @@ run_nested_multiplier_bootstrap <- function(inf.func,
   # Round down so you end up with the right number of biters
   chunks[1] = chunks[1] + biters - sum(chunks)
   rfun = if (weight_type == "rademacher") rrademacher else rnorm
-  r_mult_bs = function(inf.func, biters, cluster_id_2) {
+  r_mult_bs = function(inf.func, biters, cluster_id_2, rho) {
       B_lower = matrix(rfun(nrow(inf.func)*biters), nrow = biters, ncol = nrow(inf.func))
     if (is.null(cluster_id_2)) {
       B = B_lower
     } else {
       N_unique_clusters = length(unique(cluster_id_2))
       B_upper = create_cluster_weights(N_unique_clusters, cluster_id_2, biters, weight_type)
-      B = B_lower * B_upper # elementwise multiplication of upper and lower Rad draws
+      if (weight_type == "rademacher") {
+        B = B_lower * B_upper
+      } else {
+        B = B_lower + rho*B_upper # elementwise addition of upper and lower weight draws
+        B_means = rowMeans(B)
+        B_sds = apply(B, 1, sd)
+        B = (B - B_means) / B_sds
+      }
     }
     B %*% inf.func / nrow(inf.func)
   }
   n <- nrow(inf.func)
+  rho = runif(1, -1, 1)
   parallel.function <- function(biters) {
     # BMisc::multiplier_bootstrap(inf.func, biters)
-    r_mult_bs(inf.func, biters, cluster_id_2)
+    r_mult_bs(inf.func, biters, cluster_id_2, rho)
   }
   # From tests, this is about where it becomes worth it to parallelize
   if(n > 2500 & pl == TRUE & cores > 1) {
@@ -468,8 +476,7 @@ run_nested_multiplier_bootstrap <- function(inf.func,
     )
     results = do.call(rbind, results)
   } else {
-    # results = BMisc::multiplier_bootstrap(inf.func, biters)
-    results = r_mult_bs(inf.func, biters, cluster_id_2)
+    results = r_mult_bs(inf.func, biters, cluster_id_2, rho)
   }
   return(results)
 }
