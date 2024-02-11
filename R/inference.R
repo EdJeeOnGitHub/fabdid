@@ -1,4 +1,48 @@
 
+rrademacher = function(N) {
+  sample(c(-1, 1), replace = TRUE, N)
+}
+
+N = 100
+
+library(tidyverse)
+sim_df = function(seed) {
+  Y_rv = rrademacher(10)
+
+  df = tibble(
+    X = rrademacher(N),
+  ) %>%
+  mutate(
+    ids = rep(1:10, each = 10),
+    Y = Y_rv[ids]
+  ) %>%
+    mutate(Z = X*Y)
+  summ_df = df %>%
+    summarise(
+      var_x = var(X),
+      var_y = var(Y),
+      var_Z = var(Z)
+    )
+  return(df)
+}
+
+sims = map_dfr(1:100, sim_df)
+sims %>%
+  filter(ids == 1)
+
+sim_df(1)
+sims %>%
+  pivot_longer(
+    cols = c(var_x, var_y, var_Z),
+    names_to = "var",
+    values_to = "value"
+  )  %>%
+  ggplot(aes(
+    x = value,
+    fill = var
+  )) +
+  geom_density()
+
 #' @title Compute extra term in influence function due to estimating weights
 #'
 #' @description A function to compute the extra term that shows up in the
@@ -438,7 +482,7 @@ run_nested_multiplier_bootstrap <- function(inf.func,
     } else {
       N_unique_clusters = length(unique(cluster_id_2))
       B_upper = create_cluster_rademacher(N_unique_clusters, cluster_id_2, biters)
-      B = B_lower * B_upper # elementwise multiplication of upper and lower Rad draws
+      B = (B_lower + B_upper) / sqrt(2) # elementwise addition of upper and lower Rad draws
     }
     B %*% inf.func / nrow(inf.func)
   }
